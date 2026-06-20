@@ -16,7 +16,7 @@
 <div class={cn("flex px-4 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
 	<div
 		class={cn(
-			"max-w-[78%] rounded-[18px] px-4 py-2.5 text-[15px] leading-snug break-words overflow-hidden shadow-sm",
+			"max-w-[78%] rounded-[18px] px-4 py-2.5 text-[15px] leading-snug break-words overflow-x-auto shadow-sm",
 			role === "user"
 				? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md"
 				: content

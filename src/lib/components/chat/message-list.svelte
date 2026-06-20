@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from "svelte";
 	import { cn } from "$lib/utils";
 	import Message from "./message.svelte";
 
@@ -12,10 +13,17 @@
 
 	let scrollContainer: HTMLDivElement;
 
-	$effect(() => {
+	async function scrollToBottom() {
+		await tick();
 		if (scrollContainer) {
 			scrollContainer.scrollTop = scrollContainer.scrollHeight;
 		}
+	}
+
+	$effect(() => {
+		messages;
+		messages.forEach((m) => m.content);
+		scrollToBottom();
 	});
 </script>
 

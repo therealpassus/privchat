@@ -10,18 +10,47 @@
 		type ProviderKey,
 		providers,
 	} from "$lib/keys.svelte";
+	import {
+		getChats,
+		getActiveChatId,
+		getActiveChat,
+		createChat,
+		setActiveChat,
+		updateChatMessages,
+		setChatSummary,
+		deleteChat,
+		clearAllChats,
+	} from "$lib/history.svelte";
 	import Button from "$lib/components/ui/button.svelte";
 	import Icon from "$lib/components/ui/icon.svelte";
 
 	let inputValue = $state("");
 	let isGenerating = $state(false);
-	let messages = $state<{ id: string; role: "user" | "assistant"; content: string }[]>([]);
 	let dark = $state(getTheme());
 	let abortController = $state<AbortController | null>(null);
+	let sidebarOpen = $state(false);
+
+	const chats = $derived(getChats());
+	const currentChatId = $derived(getActiveChatId());
+	const activeChat = $derived(getActiveChat());
+	const messages = $derived(activeChat?.messages ?? []);
+
+	let hasHydrated = $state(false);
+	$effect(() => { hasHydrated = true; });
+
+	function formatDate(ts: number): string {
+		const now = Date.now();
+		const diff = now - ts;
+		if (diff < 60000) return "Just now";
+		if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+		if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+		if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+		return new Date(ts).toLocaleDateString();
+	}
 
 	let selectedProvider = $state<ProviderKey>(restoreProvider());
 	let selectedModel = $state(restoreModel());
-	let menuOpen = $state(false);
+	let modelMenuOpen = $state(false);
 
 	function restoreProvider(): ProviderKey {
 		if (typeof window === "undefined") return "openai";
@@ -74,18 +103,13 @@
 					persistSelection(selectedProvider, selectedModel);
 				}
 			}
-		} catch {
-			/* keep previous models */
-		} finally {
-			modelsLoading = false;
-		}
+		} catch { /* keep previous models */ }
+		finally { modelsLoading = false; }
 	}
 
 	$effect(() => {
 		selectedProvider;
-		if (activeProviders.length > 0) {
-			fetchModels();
-		}
+		if (activeProviders.length > 0) fetchModels();
 	});
 
 	const SYSTEM_PROMPT = `You are a sharp, warm, and concise assistant. Get straight to the point — no fluff, no throat-clearing. Keep answers short and prioritize what matters most. Use markdown (headers, lists, inline code) when it adds clarity. Be direct but never cold: a touch of personality is welcome, just don't waste words. If you don't know, admit it in one sentence. No greetings, no sign-offs.`;
@@ -107,12 +131,35 @@
 		dark = getTheme();
 	}
 
+	function handleNewChat() {
+		createChat();
+		sidebarOpen = false;
+		inputValue = "";
+		isGenerating = false;
+	}
+
+	function handleSelectChat(id: string) {
+		setActiveChat(id);
+		sidebarOpen = false;
+		inputValue = "";
+		isGenerating = false;
+	}
+
+	function handleDeleteChat(id: string) {
+		deleteChat(id);
+	}
+
 	async function handleSubmit(text: string) {
 		if (!hasAnyKey() || isGenerating) return;
 
+		if (!currentChatId) createChat();
+		const chat = getActiveChat();
+		if (!chat) return;
+
 		const userMsg = { id: crypto.randomUUID(), role: "user" as const, content: text };
 		const aMsg = { id: crypto.randomUUID(), role: "assistant" as const, content: "" };
-		messages.push(userMsg, aMsg);
+		chat.messages.push(userMsg, aMsg);
+		updateChatMessages(messages);
 		const assistantIdx = messages.length - 1;
 		isGenerating = true;
 
@@ -129,9 +176,7 @@
 					model: selectedModel,
 					messages: [
 						{ role: "system", content: SYSTEM_PROMPT },
-						...messages
-							.filter((m) => m.content)
-							.map((m) => ({ role: m.role, content: m.content })),
+						...messages.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content })),
 					],
 				}),
 				signal: controller.signal,
@@ -140,12 +185,14 @@
 			if (!res.ok) {
 				const err = await res.text();
 				messages[assistantIdx].content = `Error: ${res.status} - ${err.slice(0, 300)}`;
+				updateChatMessages(messages);
 				return;
 			}
 
 			const reader = res.body?.getReader();
 			if (!reader) {
 				messages[assistantIdx].content = "No response stream";
+				updateChatMessages(messages);
 				return;
 			}
 
@@ -155,9 +202,12 @@
 				if (done) break;
 				messages[assistantIdx].content += decoder.decode(value, { stream: true });
 			}
+			updateChatMessages(messages);
+			generateSummary();
 		} catch (err) {
 			if ((err as Error).name !== "AbortError") {
 				messages[assistantIdx].content = `Error: ${(err as Error).message}`;
+				updateChatMessages(messages);
 			}
 		} finally {
 			isGenerating = false;
@@ -169,110 +219,199 @@
 		abortController?.abort();
 		isGenerating = false;
 	}
+
+	async function generateSummary() {
+		const chat = getActiveChat();
+		if (!chat || chat.summary) return;
+		const userMsg = chat.messages.find((m) => m.role === "user" && m.content);
+		const aiMsg = chat.messages.find((m) => m.role === "assistant" && m.content);
+		if (!userMsg || !aiMsg) return;
+
+		try {
+			const res = await fetch("/api/chat", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					baseUrl: getBaseUrl(selectedProvider),
+					apiKey: getKey(selectedProvider),
+					model: selectedModel,
+					messages: [
+						{
+							role: "system",
+							content:
+								"Create a short, descriptive title (3-6 words) that captures the essence of this conversation. Return only the title, no quotes, no punctuation at the end.",
+						},
+						{ role: "user", content: userMsg.content },
+						{ role: "assistant", content: aiMsg.content.slice(0, 500) },
+					],
+				}),
+				signal: AbortSignal.timeout(15000),
+			});
+
+			if (!res.ok || !res.body) return;
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let summary = "";
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				summary += decoder.decode(value, { stream: true });
+			}
+			const clean = summary.trim().replace(/^["']|["']$/g, "").slice(0, 80);
+			if (clean) setChatSummary(clean);
+		} catch { /* ignore */ }
+	}
 </script>
 
-<div class="flex h-screen flex-col bg-background">
-	<header class="flex h-14 shrink-0 items-center justify-between border-b px-4">
-		<h1 class="text-sm font-semibold">PrivChat</h1>
-		<div class="flex items-center gap-1">
-			{#if activeProviders.length > 0}
-				<div class="relative">
-					<button
-						class="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors"
-						onclick={() => {
-							menuOpen = !menuOpen;
-							if (menuOpen && providerModels[selectedProvider].length === 0) fetchModels();
-						}}
-						onblur={() => setTimeout(() => (menuOpen = false), 200)}
-					>
-						{providers.find((pr) => pr.key === selectedProvider)?.label}
-						<span class="text-muted-foreground">·</span>
-						{modelLabel(selectedModel) || "..."}
-						<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {menuOpen ? 'rotate-180' : ''} transition-transform">
-							<path d="m6 9 6 6 6-6"/>
-						</svg>
-					</button>
-					{#if menuOpen}
-						<div
-							role="menu"
-							tabindex="-1"
-							class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-popover p-1 shadow-md"
-							onmousedown={(e) => e.preventDefault()}
-						>
-							{#each activeProviders as p}
-								{@const info = providers.find((pr) => pr.key === p)!}
-								<div class="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-									{info.label}
-								</div>
-								{#if providerModels[p].length === 0}
-									<div class="px-2.5 pb-1 text-[11px] text-muted-foreground pl-3">
-										{modelsLoading ? "Loading..." : "No models"}
-									</div>
-								{:else}
-									{#each providerModels[p] as modelId}
-										<button
-											class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-accent {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium' : 'text-muted-foreground'}"
-										onclick={() => {
-											const changed = selectedProvider !== p;
-											selectedProvider = p;
-											selectedModel = modelId;
-											persistSelection(p, modelId);
-											menuOpen = false;
-											if (changed && providerModels[p].length === 0) fetchModels();
-										}}
-										>
-											<span class="flex-1 text-left pl-3">{modelLabel(modelId)}</span>
-											{#if selectedProvider === p && selectedModel === modelId}
-												<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-													<path d="M20 6 9 17l-5-5"/>
-												</svg>
-											{/if}
-										</button>
-									{/each}
-								{/if}
-							{/each}
-						</div>
-					{/if}
-				</div>
-			{/if}
-			<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
-				{#snippet children()}
-					{#if dark}
-						<Icon name="sun" class="size-4" />
-					{:else}
-						<Icon name="moon" class="size-4" />
-					{/if}
-				{/snippet}
-			</Button>
-			<Button variant="ghost" size="icon" onclick={() => goto("/settings")} aria-label="Settings">
-				{#snippet children()}
-					<Icon name="settings" class="size-4" />
-				{/snippet}
-			</Button>
-		</div>
-	</header>
-
-	<MessageList {messages} />
-
-	{#if !hasAnyKey()}
-		<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5">
-			<div class="flex items-center gap-2 text-sm text-muted-foreground">
-				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-				No API key configured
-			</div>
-			<Button variant="outline" size="sm" onclick={() => goto("/settings")}>
-				{#snippet children()}Configure{/snippet}
-			</Button>
-		</div>
+<div class="flex h-screen bg-background">
+	{#if sidebarOpen}
+		<button
+			class="fixed inset-0 z-40 bg-black/20"
+			onclick={() => (sidebarOpen = false)}
+			aria-label="Close sidebar"
+		></button>
 	{/if}
 
-	<div class="shrink-0 border-t bg-background px-3 py-2.5">
-		<PromptInput
-			bind:value={inputValue}
-			isGenerating={isGenerating}
-			onSubmit={handleSubmit}
-			onStop={handleStop}
-			disabled={!hasAnyKey()}
-		/>
+	<aside
+		class="absolute left-0 top-0 z-50 flex h-full w-72 -translate-x-full flex-col border-r bg-background transition-transform {sidebarOpen ? 'translate-x-0' : ''}"
+	>
+		<div class="flex h-14 shrink-0 items-center justify-between border-b px-4">
+			<h2 class="text-sm font-semibold">Chats</h2>
+			<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
+				{#snippet children()}
+					<Icon name="plus" class="size-4" />
+				{/snippet}
+			</Button>
+		</div>
+
+		<div class="flex-1 overflow-y-auto p-2">
+			{#each chats as chat (chat.id)}
+				<div
+					class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted {chat.id === currentChatId ? 'bg-muted' : ''}"
+				>
+					<button class="flex-1 min-w-0 text-left" onclick={() => handleSelectChat(chat.id)}>
+						<div class="truncate text-sm">{chat.summary || chat.title}</div>
+						<div class="text-[11px] text-muted-foreground">{formatDate(chat.updatedAt)}</div>
+					</button>
+					<button
+						class="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+						onclick={() => handleDeleteChat(chat.id)}
+						aria-label="Delete chat"
+					>
+						<Icon name="trash" class="size-3.5" />
+					</button>
+				</div>
+			{/each}
+			{#if chats.length === 0}
+				<p class="px-3 py-8 text-center text-sm text-muted-foreground">No chats yet</p>
+			{/if}
+		</div>
+
+		{#if chats.length > 0}
+			<div class="shrink-0 border-t p-2">
+				<button
+					class="w-full rounded-md px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+					onclick={clearAllChats}
+				>
+					Clear all chats
+				</button>
+			</div>
+		{/if}
+	</aside>
+
+	<div class="flex flex-1 flex-col">
+		<header class="flex h-14 shrink-0 items-center justify-between border-b px-4">
+			<div class="flex items-center gap-2">
+				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} aria-label="Open chats">
+					{#snippet children()}
+						<Icon name="menu" class="size-4" />
+					{/snippet}
+				</Button>
+				<h1 class="text-sm font-semibold">PrivChat</h1>
+			</div>
+			<div class="flex items-center gap-1">
+				{#if activeProviders.length > 0}
+					<div class="relative">
+						<button
+							class="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors"
+							onclick={() => {
+								modelMenuOpen = !modelMenuOpen;
+								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
+							}}
+							onblur={() => setTimeout(() => (modelMenuOpen = false), 200)}
+						>
+							{providers.find((pr) => pr.key === selectedProvider)?.label}
+							<span class="text-muted-foreground">·</span>
+							{modelLabel(selectedModel) || "..."}
+							<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
+								<path d="m6 9 6 6 6-6"/>
+							</svg>
+						</button>
+						{#if modelMenuOpen}
+							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-popover p-1 shadow-md" onmousedown={(e) => e.preventDefault()}>
+								{#each activeProviders as p}
+									{@const info = providers.find((pr) => pr.key === p)!}
+									<div class="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{info.label}</div>
+									{#if providerModels[p].length === 0}
+										<div class="px-2.5 pb-1 text-[11px] text-muted-foreground pl-3">{modelsLoading ? "Loading..." : "No models"}</div>
+									{:else}
+										{#each providerModels[p] as modelId}
+											<button
+												class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-accent {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium' : 'text-muted-foreground'}"
+												onclick={() => {
+													const changed = selectedProvider !== p;
+													selectedProvider = p;
+													selectedModel = modelId;
+													persistSelection(p, modelId);
+													modelMenuOpen = false;
+													if (changed && providerModels[p].length === 0) fetchModels();
+												}}
+											>
+												<span class="flex-1 text-left pl-3">{modelLabel(modelId)}</span>
+												{#if selectedProvider === p && selectedModel === modelId}
+													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+												{/if}
+											</button>
+										{/each}
+									{/if}
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
+				<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
+					{#snippet children()}
+						{#if dark}<Icon name="sun" class="size-4" />{:else}<Icon name="moon" class="size-4" />{/if}
+					{/snippet}
+				</Button>
+				<Button variant="ghost" size="icon" onclick={() => goto("/settings")} aria-label="Settings">
+					{#snippet children()}<Icon name="settings" class="size-4" />{/snippet}
+				</Button>
+			</div>
+		</header>
+
+		<MessageList {messages} />
+
+		{#if !hasAnyKey()}
+			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5">
+				<div class="flex items-center gap-2 text-sm text-muted-foreground">
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+					No API key configured
+				</div>
+				<Button variant="outline" size="sm" onclick={() => goto("/settings")}>
+					{#snippet children()}Configure{/snippet}
+				</Button>
+			</div>
+		{/if}
+
+		<div class="shrink-0 border-t bg-background px-3 py-2.5">
+			<PromptInput
+				bind:value={inputValue}
+				isGenerating={isGenerating}
+				onSubmit={handleSubmit}
+				onStop={handleStop}
+				disabled={!hasAnyKey()}
+			/>
+		</div>
 	</div>
 </div>
