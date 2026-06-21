@@ -14,7 +14,7 @@
 		class?: string;
 	} = $props();
 
-	let menuOpen = $state(false);
+	let copied = $state(false);
 
 	function formatTime(ts: string) {
 		try {
@@ -23,41 +23,34 @@
 		} catch { return ""; }
 	}
 
-	function handleContextMenu(e: MouseEvent | TouchEvent) {
-		e.preventDefault();
-		menuOpen = true;
-	}
-
-	function handleCopy() {
+	function handlePress() {
+		if (!content) return;
 		navigator.clipboard.writeText(content);
-		menuOpen = false;
+		copied = true;
+		setTimeout(() => (copied = false), 1200);
 	}
 </script>
 
-<svelte:window onclick={() => (menuOpen = false)} />
-
 <div class={cn("flex px-4 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
-	<div
-		role="button"
-		tabindex="0"
+	<button
 		class={cn(
-			"max-w-[78%] min-w-0 w-fit rounded-[18px] break-words overflow-hidden shadow-sm transition-all duration-300 relative",
+			"max-w-[78%] min-w-0 w-fit rounded-[16px] break-words overflow-hidden shadow-sm transition-all duration-300 relative text-left",
 			role === "user"
-				? "bg-blue-500 text-white rounded-br-md px-4 py-2.5 text-[15px] leading-snug"
+				? "bg-blue-500 text-white rounded-br-[4px] px-3 py-2 text-[15px] leading-snug"
 				: content
-					? "bg-neutral-100/80 text-neutral-900 dark:bg-neutral-800/60 dark:text-neutral-200 rounded-bl-md px-4 py-2.5 text-[15px] leading-snug"
-					: "bg-neutral-100/80 dark:bg-neutral-800/60 rounded-bl-md px-4 py-2.5"
+					? "bg-neutral-100/80 text-neutral-900 dark:bg-neutral-800/60 dark:text-neutral-200 rounded-bl-[4px] px-3 py-2 text-[15px] leading-snug"
+					: "bg-neutral-100/80 dark:bg-neutral-800/60 rounded-bl-[4px] px-3 py-2"
 		)}
-		oncontextmenu={handleContextMenu}
+		oncontextmenu={(e) => { e.preventDefault(); handlePress(); }}
 	>
 		{#if content}
 			{#if role === "user"}
-				<span class="whitespace-pre-wrap select-text">{content}</span>
+				<span class="whitespace-pre-wrap">{content}</span>
 			{:else}
 				<Markdown {content} />
 			{/if}
 			{#if time}
-				<div class="text-right mt-1 -mb-1 select-none">
+				<div class="text-right mt-1 -mb-1">
 					<span class="text-[10px] opacity-50">{formatTime(time)}</span>
 				</div>
 			{/if}
@@ -68,20 +61,21 @@
 				<div class="shimmer-dot" style="animation-delay: 0.4s"></div>
 			</div>
 		{/if}
-
-		{#if menuOpen && content}
-			<button
-				class="absolute bottom-1 right-1 z-10 rounded-lg bg-black/80 px-2.5 py-1.5 text-[11px] font-medium text-white backdrop-blur-md transition-colors hover:bg-black/90"
-				onclick={handleCopy}
-				onmousedown={(e) => e.stopPropagation()}
-			>
-				Copy
-			</button>
+		{#if copied}
+			<div class="absolute inset-0 flex items-center justify-center bg-black/10 rounded-[16px]">
+				<span class="text-[11px] font-medium opacity-80">Copied</span>
+			</div>
 		{/if}
-	</div>
+	</button>
 </div>
 
 <style>
+	button {
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
 	.shimmer-dot {
 		width: 5px;
 		height: 5px;
