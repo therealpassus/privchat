@@ -31,7 +31,7 @@ function load() {
 		if (stored) {
 			const parsed = JSON.parse(stored);
 			if (Array.isArray(parsed)) {
-				chats = parsed;
+				chats = parsed.filter((c: Chat) => c.messages && c.messages.length > 0);
 			}
 		}
 	} catch {

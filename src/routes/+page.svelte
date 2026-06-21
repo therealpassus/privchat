@@ -162,7 +162,7 @@
 
 	function handleNewChat() {
 		const chat = getActiveChat();
-		if (chat && chat.messages.length === 0) {
+		if (!chat || chat.messages.length === 0) {
 			sidebarOpen = false;
 			return;
 		}
