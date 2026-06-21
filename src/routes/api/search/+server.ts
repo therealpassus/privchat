@@ -15,18 +15,24 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const data = await res.json();
 		const parts: string[] = [];
+		let n = 1;
 
-		if (data.AbstractText) {
-			parts.push(data.AbstractText);
+		if (data.AbstractText && data.AbstractURL) {
+			parts.push(`(${n}) ${data.AbstractText}\nSource: ${data.AbstractURL}`);
+			n++;
 		}
 		if (data.RelatedTopics) {
-			for (const topic of data.RelatedTopics.slice(0, 3)) {
-				if (topic.Text) parts.push(topic.Text);
+			for (const topic of data.RelatedTopics.slice(0, 5)) {
+				if (topic.Text) {
+					const url = topic.FirstURL || "";
+					parts.push(`(${n}) ${topic.Text}${url ? `\nSource: ${url}` : ""}`);
+					n++;
+				}
 			}
 		}
 
-		return json({ results: parts.join("\n").slice(0, 2000) });
+		return json({ results: parts.join("\n\n").slice(0, 3000), sources: n - 1 });
 	} catch {
-		return json({ results: "" });
+		return json({ results: "", sources: 0 });
 	}
 };

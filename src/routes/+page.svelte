@@ -133,7 +133,7 @@
 
 	function buildMessages(chatMessages: { role: string; content: string }[], searchContext = "") {
 		const systemContent = searchContext
-			? `${SYSTEM_PROMPT}\n\nWeb search results for context:\n${searchContext}`
+			? `${SYSTEM_PROMPT}\n\nWeb search results below. Use them to answer accurately. Cite sources with [1], [2] etc. matching the numbers in the results.\n\n${searchContext}`
 			: SYSTEM_PROMPT;
 		const result: { role: string; content: string }[] = [{ role: "system", content: systemContent }];
 		let used = Math.ceil(systemContent.length / CHARS_PER_TOKEN);
