@@ -325,6 +325,17 @@
 				</button>
 			</div>
 		{/if}
+
+		<div class="shrink-0 border-t p-2 flex items-center justify-between">
+			<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
+				{#snippet children()}
+					{#if dark}<Icon name="sun" class="size-4" />{:else}<Icon name="moon" class="size-4" />{/if}
+				{/snippet}
+			</Button>
+			<Button variant="ghost" size="icon" onclick={() => { sidebarOpen = false; goto("/settings"); }} aria-label="Settings">
+				{#snippet children()}<Icon name="settings" class="size-4" />{/snippet}
+			</Button>
+		</div>
 	</aside>
 
 	<div class="flex flex-1 flex-col overflow-x-hidden">
@@ -341,30 +352,28 @@
 				{#if activeProviders.length > 0}
 					<div class="relative" bind:this={modelMenuEl}>
 						<button
-							class="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors"
+							class="flex items-center gap-0.5 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-foreground/80 hover:bg-muted transition-colors"
 							onclick={() => {
 								modelMenuOpen = !modelMenuOpen;
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
 							}}
 						>
-							{providers.find((pr) => pr.key === selectedProvider)?.label}
-							<span class="text-muted-foreground">·</span>
 							{modelLabel(selectedModel) || "..."}
-							<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
+							<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
 								<path d="m6 9 6 6 6-6"/>
 							</svg>
 						</button>
 						{#if modelMenuOpen}
-							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-popover p-1 shadow-md">
+							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border bg-popover p-1 shadow-md">
 								{#each activeProviders as p}
 									{@const info = providers.find((pr) => pr.key === p)!}
-									<div class="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{info.label}</div>
+									<div class="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{info.label}</div>
 									{#if providerModels[p].length === 0}
 										<div class="px-2.5 pb-1 text-[11px] text-muted-foreground pl-3">{modelsLoading ? "Loading..." : "No models"}</div>
 									{:else}
 										{#each providerModels[p] as modelId}
 											<button
-												class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-accent {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium' : 'text-muted-foreground'}"
+												class="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-accent {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium' : 'text-muted-foreground'}"
 												onclick={() => {
 													const changed = selectedProvider !== p;
 													selectedProvider = p;
@@ -374,7 +383,7 @@
 													if (changed && providerModels[p].length === 0) fetchModels();
 												}}
 											>
-												<span class="flex-1 text-left pl-3">{modelLabel(modelId)}</span>
+												<span class="flex-1 text-left pl-2">{modelLabel(modelId)}</span>
 												{#if selectedProvider === p && selectedModel === modelId}
 													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 												{/if}
@@ -386,14 +395,6 @@
 						{/if}
 					</div>
 				{/if}
-				<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
-					{#snippet children()}
-						{#if dark}<Icon name="sun" class="size-4" />{:else}<Icon name="moon" class="size-4" />{/if}
-					{/snippet}
-				</Button>
-				<Button variant="ghost" size="icon" onclick={() => goto("/settings")} aria-label="Settings">
-					{#snippet children()}<Icon name="settings" class="size-4" />{/snippet}
-				</Button>
 			</div>
 		</header>
 
