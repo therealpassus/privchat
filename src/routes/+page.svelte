@@ -271,7 +271,7 @@
 	}
 </script>
 
-<div class="flex h-screen overflow-x-hidden bg-background">
+<div class="flex h-full overflow-x-hidden bg-background">
 	{#if sidebarOpen}
 		<button
 			class="fixed inset-0 z-40 bg-black/20"
