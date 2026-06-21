@@ -71,7 +71,7 @@
 	const selectedProvider = $derived(providers.find((p) => p.key === selected)!);
 </script>
 
-<div class="flex h-screen flex-col bg-background">
+<div class="flex h-screen overflow-x-hidden flex-col bg-background">
 	<header class="flex h-14 shrink-0 items-center gap-3 border-b px-4">
 		<Button variant="ghost" size="icon" onclick={() => goto("/")} aria-label="Back to chat">
 			{#snippet children()}

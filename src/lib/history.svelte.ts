@@ -1,3 +1,5 @@
+import { uuid } from "$lib/utils";
+
 const STORAGE_KEY = "privchat:history";
 
 export interface ChatMessage {
@@ -63,7 +65,7 @@ export function getActiveChat(): Chat | undefined {
 
 export function createChat(): Chat {
 	const chat: Chat = {
-		id: crypto.randomUUID(),
+		id: uuid(),
 		title: "New chat",
 		summary: "",
 		messages: [],

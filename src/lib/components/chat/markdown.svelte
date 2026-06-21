@@ -3,6 +3,23 @@
 
 	let { content, class: className = "" }: { content: string; class?: string } = $props();
 
+	const renderer = new marked.Renderer();
+
+	renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
+		const escaped = escapeHtml(text);
+		const label = lang ? `<span class="code-lang">${lang}</span>` : "";
+		return `
+<div class="code-block-wrapper">
+	<div class="code-block-header">
+		${label}
+		<button class="code-copy-btn" data-code="${encodeURIComponent(text)}">Copy</button>
+	</div>
+	<pre><code class="language-${lang || ""}">${escaped}</code></pre>
+</div>`;
+	};
+
+	marked.use({ renderer });
+
 	const html = $derived.by(() => {
 		try {
 			return marked.parse(content, { breaks: true }) as string;
@@ -15,49 +32,73 @@
 		return text
 			.replace(/&/g, "&amp;")
 			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;");
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
+	}
+
+	function handleCopy(e: MouseEvent) {
+		const btn = e.target as HTMLElement;
+		if (!btn.classList.contains("code-copy-btn")) return;
+		const code = decodeURIComponent(btn.getAttribute("data-code") || "");
+		navigator.clipboard.writeText(code);
+		btn.textContent = "Copied!";
+		setTimeout(() => (btn.textContent = "Copy"), 2000);
 	}
 </script>
+
+<svelte:window onclick={handleCopy} />
 
 <div class="markdown-content {className ?? ''}">
 	{@html html}
 </div>
 
 <style>
-	.markdown-content :global(table) {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.75rem;
+	.markdown-content :global(.code-block-wrapper) {
 		margin: 0.5rem 0;
 		border-radius: 0.5rem;
-		overflow: hidden;
 		border: 1px solid var(--border);
+		background: oklch(0.15 0.005 285);
+		overflow: hidden;
+		max-width: 100%;
 	}
-	.markdown-content :global(th) {
-		padding: 0.375rem 0.625rem;
-		text-align: left;
+	.markdown-content :global(.code-block-header) {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.375rem 0.75rem;
+		border-bottom: 1px solid oklch(0.25 0.005 285);
+	}
+	.markdown-content :global(.code-lang) {
+		font-size: 0.625rem;
 		font-weight: 600;
-		font-size: 0.6875rem;
 		text-transform: uppercase;
-		letter-spacing: 0.025em;
-		background: var(--muted);
-		color: var(--foreground);
+		letter-spacing: 0.05em;
+		color: oklch(0.55 0 0);
 	}
-	.markdown-content :global(td) {
-		padding: 0.375rem 0.625rem;
-		text-align: left;
+	.markdown-content :global(.code-copy-btn) {
+		font-size: 0.625rem;
+		color: oklch(0.55 0 0);
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.125rem 0.375rem;
+		border-radius: 0.25rem;
+		transition: background 150ms;
 	}
-	.markdown-content :global(th),
-	.markdown-content :global(td) {
-		border-bottom: 1px solid var(--border);
+	.markdown-content :global(.code-copy-btn:hover) {
+		background: oklch(0.3 0.005 285);
+		color: oklch(0.8 0 0);
 	}
-	.markdown-content :global(tr:last-child td) {
-		border-bottom: none;
+	.markdown-content :global(.code-block-wrapper pre) {
+		margin: 0;
+		border-radius: 0;
+		border: none;
+		background: transparent;
 	}
-	.markdown-content :global(tr:nth-child(even) td) {
-		background: color-mix(in srgb, var(--muted) 40%, transparent);
-	}
-	.markdown-content :global(thead tr th) {
-		border-bottom-width: 2px;
+	.markdown-content :global(.code-block-wrapper code) {
+		background: transparent;
+		padding: 0;
+		font-size: 0.8125rem;
+		color: oklch(0.95 0 0);
 	}
 </style>

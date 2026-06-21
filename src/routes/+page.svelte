@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
+	import { uuid } from "$lib/utils";
 	import { PromptInput, MessageList } from "$lib/components/chat";
 	import { toggleTheme, getTheme } from "$lib/theme.svelte";
 	import {
@@ -51,6 +52,13 @@
 	let selectedProvider = $state<ProviderKey>(restoreProvider());
 	let selectedModel = $state(restoreModel());
 	let modelMenuOpen = $state(false);
+	let modelMenuEl = $state<HTMLDivElement>();
+
+	function handleWindowClick(e: MouseEvent) {
+		if (modelMenuOpen && modelMenuEl && !modelMenuEl.contains(e.target as Node)) {
+			modelMenuOpen = false;
+		}
+	}
 
 	function restoreProvider(): ProviderKey {
 		if (typeof window === "undefined") return "openai";
@@ -156,8 +164,8 @@
 		const chat = getActiveChat();
 		if (!chat) return;
 
-		const userMsg = { id: crypto.randomUUID(), role: "user" as const, content: text };
-		const aMsg = { id: crypto.randomUUID(), role: "assistant" as const, content: "" };
+		const userMsg = { id: uuid(), role: "user" as const, content: text };
+		const aMsg = { id: uuid(), role: "assistant" as const, content: "" };
 		chat.messages.push(userMsg, aMsg);
 		updateChatMessages(messages);
 		const assistantIdx = messages.length - 1;
@@ -263,7 +271,7 @@
 	}
 </script>
 
-<div class="flex h-screen bg-background">
+<div class="flex h-screen overflow-x-hidden bg-background">
 	{#if sidebarOpen}
 		<button
 			class="fixed inset-0 z-40 bg-black/20"
@@ -319,7 +327,7 @@
 		{/if}
 	</aside>
 
-	<div class="flex flex-1 flex-col">
+	<div class="flex flex-1 flex-col overflow-x-hidden">
 		<header class="flex h-14 shrink-0 items-center justify-between border-b px-4">
 			<div class="flex items-center gap-2">
 				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} aria-label="Open chats">
@@ -331,14 +339,13 @@
 			</div>
 			<div class="flex items-center gap-1">
 				{#if activeProviders.length > 0}
-					<div class="relative">
+					<div class="relative" bind:this={modelMenuEl}>
 						<button
 							class="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors"
 							onclick={() => {
 								modelMenuOpen = !modelMenuOpen;
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
 							}}
-							onblur={() => setTimeout(() => (modelMenuOpen = false), 200)}
 						>
 							{providers.find((pr) => pr.key === selectedProvider)?.label}
 							<span class="text-muted-foreground">·</span>
@@ -348,7 +355,7 @@
 							</svg>
 						</button>
 						{#if modelMenuOpen}
-							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-popover p-1 shadow-md" onmousedown={(e) => e.preventDefault()}>
+							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-popover p-1 shadow-md">
 								{#each activeProviders as p}
 									{@const info = providers.find((pr) => pr.key === p)!}
 									<div class="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{info.label}</div>
@@ -415,3 +422,5 @@
 		</div>
 	</div>
 </div>
+
+<svelte:window onclick={handleWindowClick} />
