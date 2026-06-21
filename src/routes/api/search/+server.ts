@@ -1,37 +1,40 @@
 import { json } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, fetch }) => {
 	try {
 		const { query } = await request.json();
-		if (!query) return json({ results: "" });
+		if (!query) return json({ results: "", sources: 0 });
+
+		const apiKey = env.BRAVE_API_KEY;
+		if (!apiKey) return json({ results: "", sources: 0, error: "No Brave API key configured" });
 
 		const res = await fetch(
-			`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
-			{ signal: AbortSignal.timeout(5000) }
+			`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`,
+			{
+				headers: {
+					"Accept": "application/json",
+					"Accept-Encoding": "gzip",
+					"X-Subscription-Token": apiKey,
+				},
+				signal: AbortSignal.timeout(5000),
+			}
 		);
 
-		if (!res.ok) return json({ results: "" });
+		if (!res.ok) return json({ results: "", sources: 0 });
 
 		const data = await res.json();
-		const parts: string[] = [];
-		let n = 1;
+		const results: { title: string; description: string; url: string }[] = data.web?.results || [];
 
-		if (data.AbstractText && data.AbstractURL) {
-			parts.push(`(${n}) ${data.AbstractText}\nSource: ${data.AbstractURL}`);
-			n++;
-		}
-		if (data.RelatedTopics) {
-			for (const topic of data.RelatedTopics.slice(0, 5)) {
-				if (topic.Text) {
-					const url = topic.FirstURL || "";
-					parts.push(`(${n}) ${topic.Text}${url ? `\nSource: ${url}` : ""}`);
-					n++;
-				}
-			}
-		}
+		const parts = results.map((r, i) =>
+			`(${i + 1}) ${r.title}\n${r.description}\nSource: ${r.url}`
+		);
 
-		return json({ results: parts.join("\n\n").slice(0, 3000), sources: n - 1 });
+		return json({
+			results: parts.join("\n\n").slice(0, 3000),
+			sources: results.length,
+		});
 	} catch {
 		return json({ results: "", sources: 0 });
 	}

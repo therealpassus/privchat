@@ -131,10 +131,13 @@
 	const MAX_TOKENS = 6000;
 	const CHARS_PER_TOKEN = 4;
 
-	function buildMessages(chatMessages: { role: string; content: string }[], searchContext = "") {
-		const systemContent = searchContext
-			? `${SYSTEM_PROMPT}\n\nWeb search results below. Use them to answer accurately. Cite sources with [1], [2] etc. matching the numbers in the results.\n\n${searchContext}`
-			: SYSTEM_PROMPT;
+	function buildMessages(chatMessages: { role: string; content: string }[], searchContext = "", searchAttempted = false) {
+		let systemContent = SYSTEM_PROMPT;
+		if (searchContext) {
+			systemContent = `${SYSTEM_PROMPT}\n\nWeb search results below. Use them to answer accurately. Cite sources with [1], [2] etc.\n\n${searchContext}`;
+		} else if (searchAttempted) {
+			systemContent = `${SYSTEM_PROMPT}\n\nNote: Web search was attempted but returned no results. Answer based on your knowledge and note your training cutoff if the question requires real-time data.`;
+		}
 		const result: { role: string; content: string }[] = [{ role: "system", content: systemContent }];
 		let used = Math.ceil(systemContent.length / CHARS_PER_TOKEN);
 		const recent = chatMessages.filter((m) => m.content).slice(-30);
@@ -203,13 +206,17 @@
 		const aMsg = { id: uuid(), role: "assistant" as const, content: "", time: new Date().toISOString() };
 		chat.messages.push(userMsg, aMsg);
 		updateChatMessages(messages);
+		console.log("[PrivChat] User:", text);
 		const assistantIdx = messages.length - 1;
 		isGenerating = true;
 
 		let searchContext = "";
+		let searchAttempted = false;
 		if (webSearch) {
 			const decision = await shouldSearch(text);
+			console.log("[PrivChat] Search decision:", decision ? "YES" : "NO");
 			if (decision) {
+				searchAttempted = true;
 				try {
 					const sr = await fetch("/api/search", {
 						method: "POST",
@@ -217,8 +224,9 @@
 						body: JSON.stringify({ query: text }),
 						signal: AbortSignal.timeout(5000),
 					});
-					const sd = await sr.json();
-					searchContext = sd.results || "";
+				const sd = await sr.json();
+				searchContext = sd.results || "";
+				console.log("[PrivChat] Search results:", sd.sources || 0, "sources,", searchContext.length, "chars");
 				} catch { /* search failed, continue without */ }
 			}
 		}
@@ -234,7 +242,7 @@
 					baseUrl: getBaseUrl(selectedProvider),
 					apiKey: getKey(selectedProvider),
 					model: selectedModel,
-					messages: buildMessages(messages, searchContext),
+					messages: buildMessages(messages, searchContext, searchAttempted),
 				}),
 				signal: controller.signal,
 			});
@@ -243,9 +251,11 @@
 				const err = await res.text();
 				messages[assistantIdx].content = `Error: ${res.status} - ${err.slice(0, 300)}`;
 				updateChatMessages(messages);
+				console.log("[PrivChat] LLM error:", res.status);
 				return;
 			}
 
+			console.log("[PrivChat] LLM streaming...");
 			const reader = res.body?.getReader();
 			if (!reader) {
 				messages[assistantIdx].content = "No response stream";
@@ -260,6 +270,7 @@
 				messages[assistantIdx].content += decoder.decode(value, { stream: true });
 			}
 			updateChatMessages(messages);
+			console.log("[PrivChat] LLM response:", messages[assistantIdx].content.length, "chars");
 			generateSummary();
 		} catch (err) {
 			if ((err as Error).name !== "AbortError") {
@@ -305,8 +316,9 @@
 				const { done, value } = await reader.read();
 				if (done) break;
 				answer += decoder.decode(value, { stream: true });
-			}
-			return answer.trim().toUpperCase().startsWith("YES");
+		}
+		console.log("[PrivChat] Search decision raw:", answer.trim());
+		return answer.trim().toUpperCase().startsWith("YES");
 		} catch {
 			return false;
 		}
