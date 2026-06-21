@@ -69,6 +69,11 @@
 	}
 
 	const selectedProvider = $derived(providers.find((p) => p.key === selected)!);
+	const sortedProviders = $derived([...providers].sort((a, b) => {
+		const aKey = getKey(a.key).length > 0 ? 0 : 1;
+		const bKey = getKey(b.key).length > 0 ? 0 : 1;
+		return aKey - bKey;
+	}));
 </script>
 
 <div class="flex h-full overflow-x-hidden flex-col bg-background">
@@ -90,7 +95,7 @@
 			<div class="space-y-3">
 				<h2 class="text-sm font-medium">Providers</h2>
 				<div class="space-y-1">
-					{#each providers as provider}
+					{#each sortedProviders as provider}
 						{@const configured = getKey(provider.key).length > 0}
 						<button
 							class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent {selected === provider.key ? 'bg-accent' : ''}"
@@ -127,7 +132,7 @@
 						bind:value={inputValue}
 						placeholder={selectedProvider.placeholder}
 						autocomplete="off"
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 font-mono text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 font-mono text-sm tracking-[0.15em] shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					/>
 					<Button variant="outline" size="icon" onclick={() => (showKey = !showKey)} aria-label="Toggle visibility">
 						{#snippet children()}
