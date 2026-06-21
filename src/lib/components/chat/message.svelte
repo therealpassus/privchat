@@ -18,10 +18,10 @@
 		class={cn(
 			"max-w-[78%] min-w-0 w-fit rounded-[18px] px-4 py-2.5 text-[15px] leading-snug break-words overflow-hidden shadow-sm",
 			role === "user"
-				? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md"
+				? "bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-br-md"
 				: content
-					? "bg-stone-100 text-stone-900 dark:bg-zinc-800 dark:text-zinc-100 rounded-bl-md"
-					: "bg-stone-100 text-stone-400 dark:bg-zinc-800 dark:text-zinc-500 rounded-bl-md"
+					? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100 rounded-bl-md"
+					: "bg-neutral-100 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500 rounded-bl-md"
 		)}
 	>
 		{#if content}

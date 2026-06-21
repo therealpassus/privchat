@@ -346,14 +346,14 @@
 				{#if activeProviders.length > 0}
 					<div class="relative" bind:this={modelMenuEl}>
 						<button
-							class="flex items-center gap-0.5 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-foreground/80 hover:bg-muted transition-colors"
+							class="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors"
 							onclick={() => {
 								modelMenuOpen = !modelMenuOpen;
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
 							}}
 						>
 							{modelLabel(selectedModel) || "..."}
-							<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
+							<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
 								<path d="m6 9 6 6 6-6"/>
 							</svg>
 						</button>
