@@ -56,8 +56,8 @@
 
 <div
 	class={cn(
-		"flex w-full items-center rounded-2xl border border-white/20 dark:border-white/[0.06] bg-background/70 backdrop-blur-xl px-3 shadow-lg transition-colors",
-		"focus-within:border-border/60 focus-within:bg-background/90",
+		"flex w-full items-center rounded-2xl border border-neutral-200 dark:border-white/[0.06] bg-neutral-100/80 dark:bg-white/[0.06] backdrop-blur-xl px-3 shadow-lg transition-colors",
+		"focus-within:border-neutral-300 dark:focus-within:border-white/[0.12] focus-within:bg-white dark:focus-within:bg-white/[0.08]",
 		disabled && "opacity-50",
 		className
 	)}
