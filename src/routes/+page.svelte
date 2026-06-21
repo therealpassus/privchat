@@ -405,9 +405,9 @@
 						{/if}
 					</div>
 				{/if}
-				<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
+				<Button variant="ghost" size="icon" class="ml-1" onclick={handleNewChat} aria-label="New chat">
 					{#snippet children()}
-						<Icon name="plus" class="size-4" />
+						<Icon name="plus" class="size-5" />
 					{/snippet}
 				</Button>
 			</div>
