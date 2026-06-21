@@ -31,7 +31,7 @@
 
 <div
 	bind:this={scrollContainer}
-	class={cn("flex flex-1 flex-col overflow-y-auto overflow-x-hidden", className)}
+	class={cn("flex flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-none", className)}
 >
 	{#if messages.length === 0}
 		<div class="flex flex-1 items-center justify-center p-8">

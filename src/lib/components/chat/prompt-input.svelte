@@ -73,14 +73,14 @@
 		oninput={resize}
 		class={cn(
 			"flex-1 resize-none bg-transparent px-2 py-2.5 text-sm placeholder:text-muted-foreground/60",
-			"focus-visible:outline-none disabled:cursor-not-allowed"
+			"focus-visible:outline-none disabled:cursor-not-allowed text-base py-2.5"
 		)}
 	></textarea>
 
-	<div class="mb-1.5">
+	<div class="mb-2">
 		<button
 			class={cn(
-				"inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+				"inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-200",
 				"shadow-[0_1px_2px_rgba(0,0,0,0.06)]",
 				hasContent && !disabled
 					? "bg-foreground text-background hover:scale-105 active:scale-95"

@@ -301,7 +301,7 @@
 			</div>
 		</div>
 
-		<div class="flex-1 overflow-y-auto p-2">
+		<div class="flex-1 overflow-y-auto scrollbar-none p-2">
 			{#each chats as chat (chat.id)}
 				<div
 					class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted {chat.id === currentChatId ? 'bg-muted' : ''}"
@@ -401,7 +401,7 @@
 			</div>
 		</header>
 
-		<MessageList {messages} isStreaming={isGenerating} class="pt-14 pb-[72px]" />
+		<MessageList {messages} isStreaming={isGenerating} class="pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]" />
 
 		{#if !hasAnyKey()}
 			<div class="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between bg-muted/50 backdrop-blur-xl px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
