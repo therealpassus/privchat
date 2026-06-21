@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { cn } from "$lib/utils";
 
-	let { name, class: className = "" }: { name: "arrow-up" | "square" | "user" | "bot" | "sun" | "moon" | "settings" | "chevron-left" | "menu" | "plus" | "trash"; class?: string } = $props();
+	let { name, class: className = "" }: { name: "arrow-up" | "square" | "user" | "bot" | "sun" | "moon" | "settings" | "chevron-left" | "menu" | "plus" | "trash" | "globe"; class?: string } = $props();
 </script>
 
 {#if name === "arrow-up"}
@@ -47,5 +47,9 @@
 {:else if name === "trash"}
 	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={cn("size-4", className)}>
 		<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
+	</svg>
+{:else if name === "globe"}
+	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={cn("size-4", className)}>
+		<circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
 	</svg>
 {/if}

@@ -30,6 +30,7 @@
 	let dark = $state(getTheme());
 	let abortController = $state<AbortController | null>(null);
 	let sidebarOpen = $state(false);
+	let webSearch = $state(false);
 
 	const chats = $derived(getChats());
 	const currentChatId = $derived(getActiveChatId());
@@ -130,9 +131,12 @@
 	const MAX_TOKENS = 6000;
 	const CHARS_PER_TOKEN = 4;
 
-	function buildMessages(chatMessages: { role: string; content: string }[]) {
-		const result: { role: string; content: string }[] = [{ role: "system", content: SYSTEM_PROMPT }];
-		let used = Math.ceil(SYSTEM_PROMPT.length / CHARS_PER_TOKEN);
+	function buildMessages(chatMessages: { role: string; content: string }[], searchContext = "") {
+		const systemContent = searchContext
+			? `${SYSTEM_PROMPT}\n\nWeb search results for context:\n${searchContext}`
+			: SYSTEM_PROMPT;
+		const result: { role: string; content: string }[] = [{ role: "system", content: systemContent }];
+		let used = Math.ceil(systemContent.length / CHARS_PER_TOKEN);
 		const recent = chatMessages.filter((m) => m.content).slice(-30);
 		for (let i = recent.length - 1; i >= 0; i--) {
 			const cost = Math.ceil(recent[i].content.length / CHARS_PER_TOKEN);
@@ -202,6 +206,20 @@
 		const assistantIdx = messages.length - 1;
 		isGenerating = true;
 
+		let searchContext = "";
+		if (webSearch) {
+			try {
+				const sr = await fetch("/api/search", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ query: text }),
+					signal: AbortSignal.timeout(5000),
+				});
+				const sd = await sr.json();
+				searchContext = sd.results || "";
+			} catch { /* search failed, continue without */ }
+		}
+
 		const controller = new AbortController();
 		abortController = controller;
 
@@ -213,7 +231,7 @@
 					baseUrl: getBaseUrl(selectedProvider),
 					apiKey: getKey(selectedProvider),
 					model: selectedModel,
-					messages: buildMessages(messages),
+					messages: buildMessages(messages, searchContext),
 				}),
 				signal: controller.signal,
 			});
@@ -409,6 +427,11 @@
 					</div>
 				{/if}
 			</div>
+			<Button variant="ghost" size="icon" onclick={() => (webSearch = !webSearch)} aria-label="Toggle web search">
+				{#snippet children()}
+					<Icon name="globe" class={webSearch ? "size-5 text-blue-500" : "size-5"} />
+				{/snippet}
+			</Button>
 			<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
 				{#snippet children()}
 					<Icon name="plus" class="size-5" />
