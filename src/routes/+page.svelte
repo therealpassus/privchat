@@ -285,11 +285,16 @@
 	>
 		<div class="flex h-14 shrink-0 items-center justify-between border-b px-4">
 			<h2 class="text-sm font-semibold">Chats</h2>
-			<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
-				{#snippet children()}
-					<Icon name="plus" class="size-4" />
-				{/snippet}
-			</Button>
+			<div class="flex items-center gap-1">
+				<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
+					{#snippet children()}
+						{#if dark}<Icon name="sun" class="size-4" />{:else}<Icon name="moon" class="size-4" />{/if}
+					{/snippet}
+				</Button>
+				<Button variant="ghost" size="icon" onclick={() => { sidebarOpen = false; goto("/settings"); }} aria-label="Settings">
+					{#snippet children()}<Icon name="settings" class="size-4" />{/snippet}
+				</Button>
+			</div>
 		</div>
 
 		<div class="flex-1 overflow-y-auto p-2">
@@ -325,17 +330,6 @@
 				</button>
 			</div>
 		{/if}
-
-		<div class="shrink-0 border-t p-2 flex items-center justify-between">
-			<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
-				{#snippet children()}
-					{#if dark}<Icon name="sun" class="size-4" />{:else}<Icon name="moon" class="size-4" />{/if}
-				{/snippet}
-			</Button>
-			<Button variant="ghost" size="icon" onclick={() => { sidebarOpen = false; goto("/settings"); }} aria-label="Settings">
-				{#snippet children()}<Icon name="settings" class="size-4" />{/snippet}
-			</Button>
-		</div>
 	</aside>
 
 	<div class="flex flex-1 flex-col overflow-x-hidden">
@@ -395,6 +389,11 @@
 						{/if}
 					</div>
 				{/if}
+				<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
+					{#snippet children()}
+						<Icon name="plus" class="size-4" />
+					{/snippet}
+				</Button>
 			</div>
 		</header>
 
