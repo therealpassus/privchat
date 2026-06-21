@@ -284,10 +284,10 @@
 	{/if}
 
 	<aside
-		class="absolute left-0 top-0 z-50 flex h-full w-72 -translate-x-full flex-col border-r border-white/20 dark:border-white/5 bg-background/80 backdrop-blur-2xl transition-transform {sidebarOpen ? 'translate-x-0' : ''}"
+		class="absolute left-0 top-0 z-50 flex h-full w-72 -translate-x-full flex-col border-r bg-background transition-transform {sidebarOpen ? 'translate-x-0' : ''}"
 		style="padding-bottom: env(safe-area-inset-bottom)"
 	>
-		<div class="flex h-14 shrink-0 items-center justify-between border-b border-white/20 dark:border-white/5 px-4" style="padding-top: env(safe-area-inset-top)">
+		<div class="flex h-14 shrink-0 items-center justify-between border-b px-4">
 			<h2 class="text-sm font-semibold">Chats</h2>
 			<div class="flex items-center gap-1">
 				<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
@@ -301,7 +301,7 @@
 			</div>
 		</div>
 
-		<div class="flex-1 overflow-y-auto scrollbar-none p-2">
+		<div class="flex-1 overflow-y-auto p-2">
 			{#each chats as chat (chat.id)}
 				<div
 					class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted {chat.id === currentChatId ? 'bg-muted' : ''}"
@@ -336,8 +336,8 @@
 		{/if}
 	</aside>
 
-	<div class="flex flex-1 flex-col overflow-x-hidden relative">
-		<header class="absolute top-0 left-0 right-0 z-10 flex h-14 items-center justify-between border-b border-white/20 dark:border-white/5 bg-background/60 backdrop-blur-2xl px-4" style="padding-top: env(safe-area-inset-top)">
+	<div class="flex flex-1 flex-col overflow-x-hidden">
+		<header class="flex h-14 shrink-0 items-center justify-between border-b px-4">
 			<div class="flex items-center gap-2">
 				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} aria-label="Open chats">
 					{#snippet children()}
@@ -401,10 +401,10 @@
 			</div>
 		</header>
 
-		<MessageList {messages} isStreaming={isGenerating} class="pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]" />
+		<MessageList {messages} isStreaming={isGenerating} />
 
 		{#if !hasAnyKey()}
-			<div class="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between bg-muted/50 backdrop-blur-xl px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
+			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5">
 				<div class="flex items-center gap-2 text-sm text-muted-foreground">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
 					No API key configured
@@ -416,7 +416,7 @@
 		{/if}
 
 		{#if hasAnyKey()}
-		<div class="absolute bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-1" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
+		<div class="shrink-0 border-t bg-background px-3 py-2.5">
 			<PromptInput
 				bind:value={inputValue}
 				isGenerating={isGenerating}

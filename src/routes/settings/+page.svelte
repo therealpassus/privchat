@@ -72,7 +72,7 @@
 </script>
 
 <div class="flex h-full overflow-x-hidden flex-col bg-background">
-	<header class="flex h-14 shrink-0 items-center gap-3 border-b border-white/20 dark:border-white/5 bg-background/60 backdrop-blur-2xl px-4">
+	<header class="flex h-14 shrink-0 items-center gap-3 border-b px-4">
 		<Button variant="ghost" size="icon" onclick={() => goto("/")} aria-label="Back to chat">
 			{#snippet children()}
 				<Icon name="chevron-left" class="size-4" />
