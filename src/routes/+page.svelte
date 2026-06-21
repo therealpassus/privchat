@@ -40,7 +40,7 @@
 	$effect(() => { hasHydrated = true; });
 
 	$effect(() => {
-		if (hasHydrated) {
+		if (hasHydrated && !currentChatId) {
 			createChat();
 		}
 	});
