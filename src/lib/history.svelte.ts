@@ -32,9 +32,7 @@ function load() {
 			const parsed = JSON.parse(stored);
 			if (Array.isArray(parsed)) {
 				chats = parsed;
-				if (chats.length > 0 && !activeChatId) {
-					activeChatId = chats[0].id;
-				}
+			}
 			}
 		}
 	} catch {
