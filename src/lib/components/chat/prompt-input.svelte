@@ -56,8 +56,8 @@
 
 <div
 	class={cn(
-		"flex w-full items-center rounded-2xl border border-neutral-200 dark:border-white/[0.06] bg-neutral-100/80 dark:bg-white/[0.06] backdrop-blur-xl px-3",
-		"focus-within:border-neutral-300 dark:focus-within:border-white/[0.12] focus-within:bg-white dark:focus-within:bg-white/[0.08]",
+		"flex w-full items-center rounded-[20px] border border-black/5 dark:border-white/[0.04] bg-white/60 dark:bg-white/[0.04] backdrop-blur-xl px-3.5",
+		"focus-within:border-black/10 dark:focus-within:border-white/[0.08]",
 		disabled && "opacity-50",
 		className
 	)}
@@ -71,7 +71,7 @@
 		onkeydown={handleKeydown}
 		oninput={resize}
 		class={cn(
-			"flex-1 resize-none bg-transparent py-2.5 text-base placeholder:text-muted-foreground/60",
+			"flex-1 resize-none bg-transparent py-3 text-base placeholder:text-muted-foreground/40",
 			"focus-visible:outline-none disabled:cursor-not-allowed"
 		)}
 	></textarea>
@@ -79,7 +79,7 @@
 	<div>
 		<button
 			class={cn(
-				"inline-flex size-8 shrink-0 items-center justify-center rounded-full",
+				"inline-flex size-9 shrink-0 items-center justify-center rounded-full",
 				hasContent && !disabled
 					? "bg-foreground text-background"
 					: "bg-muted-foreground/15 text-muted-foreground"
@@ -89,9 +89,9 @@
 			aria-label={isGenerating ? "Stop generating" : "Send message"}
 		>
 			{#if isGenerating}
-				<Icon name="square" class="size-3.5" />
+				<Icon name="square" class="size-4" />
 			{:else}
-				<Icon name="arrow-up" class="size-4" />
+				<Icon name="arrow-up" class="size-[18px]" />
 			{/if}
 		</button>
 	</div>
