@@ -56,8 +56,9 @@
 
 <div
 	class={cn(
-		"flex w-full items-end rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl px-2 shadow-lg transition-colors",
-		"focus-within:border-border",
+		"flex w-full items-end rounded-2xl bg-white/60 dark:bg-white/[0.06] backdrop-blur-2xl px-2",
+		"shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all",
+		"focus-within:bg-white/80 dark:focus-within:bg-white/[0.08]",
 		disabled && "opacity-50",
 		className
 	)}
@@ -80,6 +81,7 @@
 		<button
 			class={cn(
 				"inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+				"shadow-[0_1px_2px_rgba(0,0,0,0.06)]",
 				hasContent && !disabled
 					? "bg-foreground text-background hover:scale-105 active:scale-95"
 					: "bg-muted-foreground/15 text-muted-foreground"
