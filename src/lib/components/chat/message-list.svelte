@@ -69,9 +69,9 @@
 	{#if messages.length === 0}
 		<div class="flex flex-1 items-center justify-center p-8">
 			<div class="text-center space-y-4 max-w-md">
-				<h2 class="text-2xl font-semibold tracking-tight">PrivChat</h2>
+				<h2 class="text-2xl font-semibold tracking-tight privechat-title">PrivChat</h2>
 				<p class="text-sm text-muted-foreground">
-					Your messages stay on your device. Start a conversation below.
+					Your messages stay on your device. Send a message to get started.
 				</p>
 			</div>
 		</div>

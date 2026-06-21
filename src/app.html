@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<title>PrivChat</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
@@ -11,6 +11,7 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<div id="app-loading" style="position:fixed;inset:0;z-index:9999;background:#000;transition:opacity 0.15s"></div>
 		<script>
 			(() => {
 				const theme = localStorage.getItem('theme');

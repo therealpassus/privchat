@@ -167,6 +167,10 @@
 	}
 
 	function handleSelectChat(id: string) {
+		const current = getActiveChat();
+		if (current && current.messages.length === 0 && current.id !== id) {
+			deleteChat(current.id);
+		}
 		setActiveChat(id);
 		sidebarOpen = false;
 		inputValue = "";

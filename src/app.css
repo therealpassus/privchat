@@ -130,6 +130,14 @@
 	display: none;
 }
 
+.privechat-title {
+	animation: title-pulse 3s ease-in-out infinite;
+}
+@keyframes title-pulse {
+	0%, 100% { opacity: 0.85; }
+	50% { opacity: 1; }
+}
+
 .markdown-content {
 	line-height: 1.625;
 	overflow: hidden;
