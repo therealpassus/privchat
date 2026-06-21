@@ -121,6 +121,21 @@
 	});
 
 	const SYSTEM_PROMPT = `You are a sharp, warm, and concise assistant. Get straight to the point — no fluff, no throat-clearing. Keep answers short and prioritize what matters most. Use markdown (headers, lists, inline code) when it adds clarity. Be direct but never cold: a touch of personality is welcome, just don't waste words. If you don't know, admit it in one sentence. No greetings, no sign-offs.`;
+	const MAX_TOKENS = 6000;
+	const CHARS_PER_TOKEN = 4;
+
+	function buildMessages(chatMessages: { role: string; content: string }[]) {
+		const result: { role: string; content: string }[] = [{ role: "system", content: SYSTEM_PROMPT }];
+		let used = Math.ceil(SYSTEM_PROMPT.length / CHARS_PER_TOKEN);
+		const recent = chatMessages.filter((m) => m.content).slice(-30);
+		for (let i = recent.length - 1; i >= 0; i--) {
+			const cost = Math.ceil(recent[i].content.length / CHARS_PER_TOKEN);
+			if (used + cost > MAX_TOKENS) break;
+			result.splice(1, 0, { role: recent[i].role, content: recent[i].content });
+			used += cost;
+		}
+		return result;
+	}
 
 	const activeProviders = $derived(configuredProviders());
 
@@ -187,10 +202,7 @@
 					baseUrl: getBaseUrl(selectedProvider),
 					apiKey: getKey(selectedProvider),
 					model: selectedModel,
-					messages: [
-						{ role: "system", content: SYSTEM_PROMPT },
-						...messages.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content })),
-					],
+					messages: buildMessages(messages),
 				}),
 				signal: controller.signal,
 			});
