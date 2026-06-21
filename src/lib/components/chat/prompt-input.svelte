@@ -56,8 +56,8 @@
 
 <div
 	class={cn(
-		"flex w-full items-end rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl px-2 shadow-lg transition-all",
-		"focus-within:border-blue-500/40 focus-within:shadow-blue-500/5 focus-within:shadow-xl",
+		"flex w-full items-end rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl px-2 shadow-lg transition-colors",
+		"focus-within:border-border",
 		disabled && "opacity-50",
 		className
 	)}
@@ -76,13 +76,13 @@
 		)}
 	></textarea>
 
-	<div class="mb-1.5 {hasContent ? 'scale-100 opacity-100' : 'scale-90 opacity-50'} transition-all duration-200">
+	<div class="mb-1.5">
 		<button
 			class={cn(
 				"inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-all duration-200",
 				hasContent && !disabled
-					? "bg-blue-500 text-white shadow-md shadow-blue-500/25 hover:bg-blue-600 hover:scale-105 active:scale-95"
-					: "bg-black/10 text-black/30 dark:bg-white/10 dark:text-white/30"
+					? "bg-foreground text-background hover:scale-105 active:scale-95"
+					: "bg-muted-foreground/15 text-muted-foreground"
 			)}
 			disabled={(!value.trim() && !isGenerating) || disabled}
 			onclick={() => isGenerating ? onStop?.() : handleSubmit()}
