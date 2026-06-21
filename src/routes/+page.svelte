@@ -346,15 +346,12 @@
 
 	<div class="flex flex-1 flex-col overflow-x-hidden">
 		<header class="flex h-14 shrink-0 items-center justify-between border-b px-4">
-			<div class="flex items-center gap-2">
-				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} aria-label="Open chats">
-					{#snippet children()}
-						<Icon name="menu" class="size-4" />
-					{/snippet}
-				</Button>
-				<h1 class="text-sm font-semibold">PrivChat</h1>
-			</div>
-			<div class="flex items-center gap-1">
+			<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} aria-label="Open chats">
+				{#snippet children()}
+					<Icon name="menu" class="size-4" />
+				{/snippet}
+			</Button>
+			<div class="flex-1 flex justify-center">
 				{#if activeProviders.length > 0}
 					<div class="relative" bind:this={modelMenuEl}>
 						<button
@@ -401,12 +398,12 @@
 						{/if}
 					</div>
 				{/if}
-				<Button variant="ghost" size="icon" class="ml-1" onclick={handleNewChat} aria-label="New chat">
-					{#snippet children()}
-						<Icon name="plus" class="size-5" />
-					{/snippet}
-				</Button>
 			</div>
+			<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
+				{#snippet children()}
+					<Icon name="plus" class="size-5" />
+				{/snippet}
+			</Button>
 		</header>
 
 		<MessageList {messages} class="pb-[calc(4.5rem+env(safe-area-inset-bottom))]" />

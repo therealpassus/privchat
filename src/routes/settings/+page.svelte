@@ -5,12 +5,22 @@
 	import Button from "$lib/components/ui/button.svelte";
 	import Icon from "$lib/components/ui/icon.svelte";
 
-	let selected = $state<ProviderKey>("openai");
-	let inputValue = $state(getKey("openai"));
+	let selected = $state<ProviderKey>(providers[0].key);
+	let inputValue = $state("");
 	let saved = $state(false);
 	let showKey = $state(false);
 	let validating = $state(false);
 	let validationError = $state<string | null>(null);
+
+	$effect(() => {
+		const first = [...providers].sort((a, b) => {
+			const aC = getKey(a.key).length > 0 ? 0 : 1;
+			const bC = getKey(b.key).length > 0 ? 0 : 1;
+			return aC - bC;
+		})[0].key;
+		selected = first;
+		inputValue = getKey(first);
+	});
 
 	function selectProvider(key: ProviderKey) {
 		selected = key;
