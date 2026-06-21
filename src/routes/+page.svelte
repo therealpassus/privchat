@@ -297,7 +297,7 @@
 	}
 </script>
 
-<div class="flex h-full overflow-x-hidden bg-background">
+<div data-app-shell class="fixed inset-0 flex overflow-x-hidden bg-background">
 	<aside
 		class="fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 {sidebarOpen ? 'translate-x-0' : '-translate-x-full'}"
 		style="padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top)"

@@ -11,6 +11,17 @@
 			setTimeout(() => el.remove(), 200);
 		}
 	});
+
+	$effect(() => {
+		if (!window.visualViewport) return;
+		const vv = window.visualViewport;
+		const adjust = () => {
+			const root = document.querySelector<HTMLElement>('[data-app-shell]');
+			if (root) root.style.height = vv.height + 'px';
+		};
+		vv.addEventListener('resize', adjust);
+		return () => vv.removeEventListener('resize', adjust);
+	});
 </script>
 
 <svelte:head>
