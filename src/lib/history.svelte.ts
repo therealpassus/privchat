@@ -33,7 +33,6 @@ function load() {
 			if (Array.isArray(parsed)) {
 				chats = parsed;
 			}
-			}
 		}
 	} catch {
 		chats = [];
