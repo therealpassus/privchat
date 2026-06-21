@@ -140,6 +140,11 @@
 	}
 
 	function handleNewChat() {
+		const chat = getActiveChat();
+		if (chat && chat.messages.length === 0) {
+			sidebarOpen = false;
+			return;
+		}
 		createChat();
 		sidebarOpen = false;
 		inputValue = "";
@@ -282,6 +287,7 @@
 
 	<aside
 		class="absolute left-0 top-0 z-50 flex h-full w-72 -translate-x-full flex-col border-r bg-background transition-transform {sidebarOpen ? 'translate-x-0' : ''}"
+		style="padding-bottom: env(safe-area-inset-bottom)"
 	>
 		<div class="flex h-14 shrink-0 items-center justify-between border-b px-4">
 			<h2 class="text-sm font-semibold">Chats</h2>
