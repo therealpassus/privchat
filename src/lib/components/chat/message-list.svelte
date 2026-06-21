@@ -79,7 +79,7 @@
 		<div class="pt-3 pb-3">
 			{#each grouped as group}
 				<div class="flex justify-center pt-3 pb-1">
-					<span class="text-[11px] font-medium text-muted-foreground/60 bg-muted/50 rounded-full px-3 py-0.5">
+					<span class="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-3 py-0.5">
 						{formatDayLabel(group.messages[0]?.time)}
 					</span>
 				</div>

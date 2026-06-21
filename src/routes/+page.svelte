@@ -355,7 +355,7 @@
 				{#if activeProviders.length > 0}
 					<div class="relative" bind:this={modelMenuEl}>
 						<button
-							class="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors"
+							class="flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground/90"
 							onclick={() => {
 								modelMenuOpen = !modelMenuOpen;
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();

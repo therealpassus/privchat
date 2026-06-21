@@ -56,7 +56,7 @@
 
 <div
 	class={cn(
-		"flex w-full items-center rounded-2xl border border-neutral-200 dark:border-white/[0.06] bg-neutral-100/80 dark:bg-white/[0.06] backdrop-blur-xl px-3 transition-colors",
+		"flex w-full items-center rounded-2xl border border-neutral-200 dark:border-white/[0.06] bg-neutral-100/80 dark:bg-white/[0.06] backdrop-blur-xl px-3",
 		"focus-within:border-neutral-300 dark:focus-within:border-white/[0.12] focus-within:bg-white dark:focus-within:bg-white/[0.08]",
 		disabled && "opacity-50",
 		className
@@ -79,9 +79,9 @@
 	<div>
 		<button
 			class={cn(
-				"inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+				"inline-flex size-8 shrink-0 items-center justify-center rounded-full",
 				hasContent && !disabled
-					? "bg-foreground text-background hover:scale-105 active:scale-95"
+					? "bg-foreground text-background"
 					: "bg-muted-foreground/15 text-muted-foreground"
 			)}
 			disabled={(!value.trim() && !isGenerating) || disabled}
