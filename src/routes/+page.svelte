@@ -406,7 +406,7 @@
 		<MessageList {messages} />
 
 		{#if !hasAnyKey()}
-			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5">
+			<div class="flex items-center justify-between bg-muted/50 px-4 py-2.5">
 				<div class="flex items-center gap-2 text-sm text-muted-foreground">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
 					No API key configured
@@ -417,7 +417,7 @@
 			</div>
 		{/if}
 
-		<div class="shrink-0 border-t bg-background px-3 py-2.5">
+		<div class="shrink-0 px-3 pb-3 pt-1">
 			<PromptInput
 				bind:value={inputValue}
 				isGenerating={isGenerating}
