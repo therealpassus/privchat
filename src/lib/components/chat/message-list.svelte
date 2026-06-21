@@ -5,11 +5,9 @@
 
 	let {
 		messages = [],
-		isStreaming = false,
 		class: className = ""
 	}: {
-		messages: { id: string; role: "user" | "assistant"; content: string }[];
-		isStreaming?: boolean;
+		messages: { id: string; role: "user" | "assistant"; content: string; time?: string }[];
 		class?: string;
 	} = $props();
 
@@ -45,11 +43,7 @@
 	{:else}
 		<div class="pt-4 pb-4">
 			{#each messages as msg, idx (msg.id)}
-				<Message
-					role={msg.role}
-					content={msg.content}
-					isStreaming={isStreaming && idx === messages.length - 1 && msg.role === "assistant"}
-				/>
+				<Message role={msg.role} content={msg.content} time={msg.time} />
 			{/each}
 		</div>
 	{/if}

@@ -169,8 +169,8 @@
 		const chat = getActiveChat();
 		if (!chat) return;
 
-		const userMsg = { id: uuid(), role: "user" as const, content: text };
-		const aMsg = { id: uuid(), role: "assistant" as const, content: "" };
+		const userMsg = { id: uuid(), role: "user" as const, content: text, time: new Date().toISOString() };
+		const aMsg = { id: uuid(), role: "assistant" as const, content: "", time: new Date().toISOString() };
 		chat.messages.push(userMsg, aMsg);
 		updateChatMessages(messages);
 		const assistantIdx = messages.length - 1;
@@ -401,7 +401,7 @@
 			</div>
 		</header>
 
-		<MessageList {messages} isStreaming={isGenerating} />
+		<MessageList {messages} />
 
 		{#if !hasAnyKey()}
 			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
