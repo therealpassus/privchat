@@ -34,11 +34,11 @@
 <div class={cn("flex px-4 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
 	<button
 		class={cn(
-			"max-w-[78%] min-w-0 w-fit rounded-[16px] break-words overflow-hidden shadow-sm transition-all duration-300 relative text-left",
+			"max-w-[78%] min-w-0 w-fit rounded-[14px] break-words overflow-hidden shadow-sm transition-all duration-300 relative text-left",
 			role === "user"
-				? "bg-blue-500 text-white rounded-br-[4px] px-3 py-2 text-[15px] leading-snug"
+				? "bg-blue-500 text-white rounded-br-[4px] px-3 py-2 text-[14px] leading-snug"
 				: content
-					? "bg-neutral-100/80 text-neutral-900 dark:bg-neutral-800/60 dark:text-neutral-200 rounded-bl-[4px] px-3 py-2 text-[15px] leading-snug"
+					? "bg-neutral-100/80 text-neutral-900 dark:bg-neutral-800/60 dark:text-neutral-200 rounded-bl-[4px] px-3 py-2 text-[14px] leading-snug"
 					: "bg-neutral-100/80 dark:bg-neutral-800/60 rounded-bl-[4px] px-3 py-2"
 		)}
 		oncontextmenu={(e) => { e.preventDefault(); handlePress(); }}
@@ -62,7 +62,7 @@
 			</div>
 		{/if}
 		{#if copied}
-			<div class="absolute inset-0 flex items-center justify-center bg-black/10 rounded-[16px]">
+			<div class="absolute inset-0 flex items-center justify-center bg-black/10 rounded-[14px]">
 				<span class="text-[11px] font-medium opacity-80">Copied</span>
 			</div>
 		{/if}

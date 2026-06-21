@@ -1,11 +1,6 @@
 import type { RequestHandler } from "./$types";
 
-interface ChatMessage {
-	role: "user" | "assistant" | "system";
-	content: string;
-}
-
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, fetch }) => {
 	try {
 		const { baseUrl, apiKey, model, messages } = await request.json();
 
@@ -28,8 +23,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		if (!res.ok || !res.body) {
-			const body = await res.text().catch(() => "");
-			return new Response(`HTTP ${res.status}: ${body.slice(0, 500)}`, { status: res.status });
+			return new Response(`HTTP ${res.status}`, { status: res.status });
 		}
 
 		const reader = res.body.getReader();
@@ -58,7 +52,7 @@ export const POST: RequestHandler = async ({ request }) => {
 									controller.enqueue(new TextEncoder().encode(content));
 								}
 							} catch {
-								/* skip unparseable chunks */
+								/* skip */
 							}
 						}
 					}
@@ -73,6 +67,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			headers: {
 				"Content-Type": "text/plain; charset=utf-8",
 				"Cache-Control": "no-cache",
+				"X-Content-Type-Options": "nosniff",
 			},
 		});
 	} catch (err) {

@@ -175,6 +175,7 @@
 
 	function handleDeleteChat(id: string) {
 		deleteChat(id);
+		if (getChats().length === 0) sidebarOpen = false;
 	}
 
 	async function handleSubmit(text: string) {
@@ -287,59 +288,54 @@
 </script>
 
 <div class="flex h-full overflow-x-hidden bg-background">
-	{#if sidebarOpen}
-		<button
-			class="fixed inset-0 z-40 bg-black/20"
-			onclick={() => (sidebarOpen = false)}
-			aria-label="Close sidebar"
-		></button>
-	{/if}
-
 	<aside
-		class="absolute left-0 top-0 z-50 flex h-full w-72 -translate-x-full flex-col border-r bg-background transition-transform {sidebarOpen ? 'translate-x-0' : ''}"
-		style="padding-bottom: env(safe-area-inset-bottom)"
+		class="fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 {sidebarOpen ? 'translate-x-0' : '-translate-x-full'}"
+		style="padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top)"
 	>
-		<div class="flex h-14 shrink-0 items-center justify-between border-b px-4">
-			<h2 class="text-sm font-semibold">Chats</h2>
-			<div class="flex items-center gap-1">
+		<div class="flex h-14 shrink-0 items-center justify-between px-4">
+			<h2 class="text-base font-semibold">Chats</h2>
+			<div class="flex items-center gap-2">
 				<Button variant="ghost" size="icon" onclick={handleThemeToggle} aria-label="Toggle theme">
 					{#snippet children()}
-						{#if dark}<Icon name="sun" class="size-4" />{:else}<Icon name="moon" class="size-4" />{/if}
+						{#if dark}<Icon name="sun" class="size-5" />{:else}<Icon name="moon" class="size-5" />{/if}
 					{/snippet}
 				</Button>
 				<Button variant="ghost" size="icon" onclick={() => { sidebarOpen = false; goto("/settings"); }} aria-label="Settings">
-					{#snippet children()}<Icon name="settings" class="size-4" />{/snippet}
+					{#snippet children()}<Icon name="settings" class="size-5" />{/snippet}
+				</Button>
+				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = false)} aria-label="Close">
+					{#snippet children()}<Icon name="chevron-left" class="size-5" />{/snippet}
 				</Button>
 			</div>
 		</div>
 
-		<div class="flex-1 overflow-y-auto p-2">
+		<div class="flex-1 overflow-y-auto px-4">
 			{#each chats as chat (chat.id)}
 				<div
-					class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted {chat.id === currentChatId ? 'bg-muted' : ''}"
+					class="flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-muted {chat.id === currentChatId ? 'bg-muted' : ''}"
 				>
 					<button class="flex-1 min-w-0 text-left" onclick={() => handleSelectChat(chat.id)}>
-						<div class="truncate text-sm">{chat.summary || chat.title}</div>
-						<div class="text-[11px] text-muted-foreground">{formatDate(chat.updatedAt)}</div>
+						<div class="truncate text-[15px] font-medium">{chat.summary || chat.title}</div>
+						<div class="text-xs text-muted-foreground mt-0.5">{formatDate(chat.updatedAt)}</div>
 					</button>
 					<button
-						class="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+						class="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
 						onclick={() => handleDeleteChat(chat.id)}
 						aria-label="Delete chat"
 					>
-						<Icon name="trash" class="size-3.5" />
+						<Icon name="trash" class="size-4" />
 					</button>
 				</div>
 			{/each}
 			{#if chats.length === 0}
-				<p class="px-3 py-8 text-center text-sm text-muted-foreground">No chats yet</p>
+				<p class="py-16 text-center text-sm text-muted-foreground">No chats yet</p>
 			{/if}
 		</div>
 
 		{#if chats.length > 0}
-			<div class="shrink-0 border-t p-2">
+			<div class="shrink-0 px-4 pb-4 pt-2">
 				<button
-					class="w-full rounded-md px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+					class="w-full rounded-xl py-3 text-center text-sm text-muted-foreground hover:bg-muted transition-colors"
 					onclick={clearAllChats}
 				>
 					Clear all chats

@@ -13,6 +13,23 @@
 
 	let scrollContainer: HTMLDivElement;
 
+	const grouped = $derived.by(() => {
+		const result: { day: string; messages: typeof messages }[] = [];
+		let currentDay = "";
+		let currentGroup: typeof messages = [];
+		for (const msg of messages) {
+			const day = msg.time ? new Date(msg.time).toDateString() : "";
+			if (day !== currentDay) {
+				if (currentGroup.length) result.push({ day: currentDay, messages: currentGroup });
+				currentDay = day;
+				currentGroup = [];
+			}
+			currentGroup.push(msg);
+		}
+		if (currentGroup.length) result.push({ day: currentDay, messages: currentGroup });
+		return result;
+	});
+
 	async function scrollToBottom() {
 		await tick();
 		if (scrollContainer) {
@@ -25,6 +42,24 @@
 		messages.forEach((m) => m.content);
 		scrollToBottom();
 	});
+
+	function getDayKey(ts?: string): string {
+		if (!ts) return "";
+		const d = new Date(ts);
+		return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+	}
+
+	function formatDayLabel(ts?: string): string {
+		if (!ts) return "";
+		const d = new Date(ts);
+		const now = new Date();
+		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const yesterday = new Date(today.getTime() - 86400000);
+		const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+		if (msgDay.getTime() === today.getTime()) return "Today";
+		if (msgDay.getTime() === yesterday.getTime()) return "Yesterday";
+		return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+	}
 </script>
 
 <div
@@ -41,9 +76,16 @@
 			</div>
 		</div>
 	{:else}
-		<div class="pt-4 pb-4">
-			{#each messages as msg, idx (msg.id)}
-				<Message role={msg.role} content={msg.content} time={msg.time} />
+		<div class="pt-3 pb-3">
+			{#each grouped as group}
+				<div class="flex justify-center pt-3 pb-1">
+					<span class="text-[11px] font-medium text-muted-foreground/60 bg-muted/50 rounded-full px-3 py-0.5">
+						{formatDayLabel(group.messages[0]?.time)}
+					</span>
+				</div>
+				{#each group.messages as msg (msg.id)}
+					<Message role={msg.role} content={msg.content} time={msg.time} />
+				{/each}
 			{/each}
 		</div>
 	{/if}
