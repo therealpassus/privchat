@@ -30,7 +30,7 @@
 	let dark = $state(getTheme());
 	let abortController = $state<AbortController | null>(null);
 	let sidebarOpen = $state(false);
-	let webSearch = $state(false);
+	let webSearch = $state(true);
 
 	const chats = $derived(getChats());
 	const currentChatId = $derived(getActiveChatId());
@@ -208,16 +208,19 @@
 
 		let searchContext = "";
 		if (webSearch) {
-			try {
-				const sr = await fetch("/api/search", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ query: text }),
-					signal: AbortSignal.timeout(5000),
-				});
-				const sd = await sr.json();
-				searchContext = sd.results || "";
-			} catch { /* search failed, continue without */ }
+			const decision = await shouldSearch(text);
+			if (decision) {
+				try {
+					const sr = await fetch("/api/search", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ query: text }),
+						signal: AbortSignal.timeout(5000),
+					});
+					const sd = await sr.json();
+					searchContext = sd.results || "";
+				} catch { /* search failed, continue without */ }
+			}
 		}
 
 		const controller = new AbortController();
@@ -272,6 +275,41 @@
 	function handleStop() {
 		abortController?.abort();
 		isGenerating = false;
+	}
+
+	async function shouldSearch(query: string): Promise<boolean> {
+		try {
+			const res = await fetch("/api/chat", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					baseUrl: getBaseUrl(selectedProvider),
+					apiKey: getKey(selectedProvider),
+					model: selectedModel,
+					messages: [
+						{
+							role: "system",
+							content:
+								"Reply with only YES or NO. Should I search the web to answer this question accurately? Only say YES if the query needs recent or real-time information, current events, prices, news, or factual data beyond your training cutoff. Say NO for coding, math, logic, definitions, or general knowledge questions.",
+						},
+						{ role: "user", content: query },
+					],
+				}),
+				signal: AbortSignal.timeout(8000),
+			});
+			if (!res.ok || !res.body) return false;
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let answer = "";
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				answer += decoder.decode(value, { stream: true });
+			}
+			return answer.trim().toUpperCase().startsWith("YES");
+		} catch {
+			return false;
+		}
 	}
 
 	async function generateSummary() {
@@ -429,7 +467,7 @@
 			</div>
 			<Button variant="ghost" size="icon" onclick={() => (webSearch = !webSearch)} aria-label="Toggle web search">
 				{#snippet children()}
-					<Icon name="globe" class={webSearch ? "size-5 text-blue-500" : "size-5"} />
+					<Icon name="globe" class={webSearch ? "size-5 text-blue-500" : "size-5 text-muted-foreground"} />
 				{/snippet}
 			</Button>
 			<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
