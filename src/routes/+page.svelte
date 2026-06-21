@@ -39,6 +39,12 @@
 	let hasHydrated = $state(false);
 	$effect(() => { hasHydrated = true; });
 
+	$effect(() => {
+		if (hasHydrated && !currentChatId) {
+			createChat();
+		}
+	});
+
 	function formatDate(ts: number): string {
 		const now = Date.now();
 		const diff = now - ts;
@@ -413,7 +419,7 @@
 		<MessageList {messages} class="pb-[calc(4.5rem+env(safe-area-inset-bottom))]" />
 
 		{#if !hasAnyKey()}
-			<div class="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between bg-background/80 backdrop-blur-xl px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
+			<div class="fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between bg-background/80 backdrop-blur-xl px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
 				<div class="flex items-center gap-2 text-sm text-muted-foreground">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
 					No API key configured
@@ -425,10 +431,11 @@
 		{/if}
 
 		{#if hasAnyKey()}
-		<div class="absolute bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-1" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
+		<div class="fixed bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-1" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
 			<PromptInput
 				bind:value={inputValue}
 				isGenerating={isGenerating}
+				autofocus={messages.length === 0}
 				onSubmit={handleSubmit}
 				onStop={handleStop}
 			/>

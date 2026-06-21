@@ -7,6 +7,7 @@
 		placeholder = "Message",
 		disabled = false,
 		isGenerating = false,
+		autofocus = false,
 		onSubmit,
 		onStop,
 		class: className = ""
@@ -15,12 +16,19 @@
 		placeholder?: string;
 		disabled?: boolean;
 		isGenerating?: boolean;
+		autofocus?: boolean;
 		onSubmit?: (message: string) => void;
 		onStop?: () => void;
 		class?: string;
 	} = $props();
 
 	let textareaEl: HTMLTextAreaElement;
+
+	$effect(() => {
+		if (autofocus && textareaEl) {
+			textareaEl.focus();
+		}
+	});
 	let rows = $state(1);
 
 	function resize() {
