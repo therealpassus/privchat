@@ -235,10 +235,9 @@
 
 	async function generateSummary() {
 		const chat = getActiveChat();
-		if (!chat || chat.summary) return;
-		const userMsg = chat.messages.find((m) => m.role === "user" && m.content);
-		const aiMsg = chat.messages.find((m) => m.role === "assistant" && m.content);
-		if (!userMsg || !aiMsg) return;
+		if (!chat) return;
+		const messages = chat.messages.filter((m) => m.content);
+		if (messages.length < 2) return;
 
 		try {
 			const res = await fetch("/api/chat", {
@@ -254,8 +253,7 @@
 							content:
 								"Create a short, descriptive title (3-6 words) that captures the essence of this conversation. Return only the title, no quotes, no punctuation at the end.",
 						},
-						{ role: "user", content: userMsg.content },
-						{ role: "assistant", content: aiMsg.content.slice(0, 500) },
+						...messages.slice(-6).map((m) => ({ role: m.role, content: m.content.slice(0, 300) })),
 					],
 				}),
 				signal: AbortSignal.timeout(15000),
