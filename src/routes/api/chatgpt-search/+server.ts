@@ -16,7 +16,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 			? messages.filter((m: { role: string; content: string }) => m.content).map((m: { content: string }) => m.content).join("\n\n")
 			: query;
 
-		console.log("[Answers] Sending to Brave:", queryOnly.length, "chars");
+		const compact = `Be concise. Use 1-3 short sentences. Skip fluff.\n\n${queryOnly}`;
+
+		console.log("[Answers] Sending to Brave:", compact.length, "chars");
 
 		const res = await fetch("https://api.search.brave.com/res/v1/chat/completions", {
 			method: "POST",
@@ -26,7 +28,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 			},
 			body: JSON.stringify({
 				model: "brave",
-				messages: [{ role: "user", content: queryOnly.slice(0, 4000) }],
+				messages: [{ role: "user", content: compact.slice(0, 4000) }],
 				stream: true,
 				enable_citations: true,
 			}),
