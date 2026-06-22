@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { getKey, setKey, removeKey, clearAll, providers } from "$lib/keys.svelte";
+	import { getKey, setKey, removeKey, clearAll, providers, getBaseUrl, getSelectedModels, toggleSelectedModel, setSelectedModels } from "$lib/keys.svelte";
 	import type { ProviderKey } from "$lib/keys.svelte";
 	import Button from "$lib/components/ui/button.svelte";
 	import Icon from "$lib/components/ui/icon.svelte";
@@ -11,6 +11,8 @@
 	let showKey = $state(false);
 	let validating = $state(false);
 	let validationError = $state<string | null>(null);
+	let modelList = $state<string[]>([]);
+	let modelsLoading = $state(false);
 
 	$effect(() => {
 		const first = [...providers].sort((a, b) => {
@@ -27,7 +29,30 @@
 		inputValue = getKey(key);
 		showKey = false;
 		validationError = null;
+		fetchModels();
 	}
+
+	async function fetchModels() {
+		const key = getKey(selected);
+		modelsLoading = true;
+		try {
+			const res = await fetch("/api/models", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					baseUrl: getBaseUrl(selected),
+					apiKey: key,
+				}),
+			});
+			const data = await res.json();
+			modelList = (data.models || []).map((m: { id: string }) => m.id);
+		} catch { modelList = []; }
+		finally { modelsLoading = false; }
+	}
+
+	$effect(() => {
+		fetchModels();
+	});
 
 	async function handleSave() {
 		validationError = null;
@@ -176,6 +201,47 @@
 					</Button>
 				</div>
 			</div>
+
+			{#if getKey(selected).length > 0}
+				<div class="space-y-3 rounded-lg border p-4">
+					<h3 class="text-sm font-medium">Models</h3>
+					<p class="text-xs text-muted-foreground">Select which models appear in the chat model selector.</p>
+					{#if modelsLoading}
+						<p class="text-xs text-muted-foreground">Loading models...</p>
+					{:else if modelList.length === 0}
+						<p class="text-xs text-muted-foreground">No models available.</p>
+					{:else}
+						{@const activeModels = getSelectedModels(selected)}
+						{@const allChecked = activeModels.length === modelList.length && modelList.length > 0}
+						<label class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-accent cursor-pointer border-b border-border/30 pb-2 mb-1">
+							<input
+								type="checkbox"
+								checked={allChecked}
+								onchange={() => setSelectedModels(selected, allChecked ? [] : [...modelList])}
+								class="rounded border-border accent-foreground"
+							/>
+							<span class="font-medium">All models</span>
+						</label>
+						<div class="space-y-1 max-h-48 overflow-y-auto">
+							{#each modelList as modelId}
+								{@const checked = activeModels.includes(modelId)}
+								<label class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-accent cursor-pointer">
+									<input
+										type="checkbox"
+										checked={checked}
+										onchange={() => toggleSelectedModel(selected, modelId)}
+										class="rounded border-border"
+									/>
+									<span class="truncate">{modelId}</span>
+								</label>
+							{/each}
+						</div>
+						<p class="text-[10px] text-muted-foreground">
+							{activeModels.length === modelList.length ? "All models selected" : activeModels.length === 0 ? "No models selected" : `${activeModels.length} of ${modelList.length} selected`}
+						</p>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>

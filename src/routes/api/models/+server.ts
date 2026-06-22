@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 const fallbacks: Record<string, string[]> = {
-	"api.openai.com": ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "o3-mini", "o4-mini"],
+	"api.openai.com": ["gpt-5.5", "gpt-5.5-mini", "gpt-5.5-nano", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-4o", "gpt-4o-mini", "o4-mini"],
 	"api.deepseek.com": ["deepseek-chat", "deepseek-reasoner", "deepseek-v4-flash", "deepseek-v4-pro"],
 };
 
@@ -25,11 +25,15 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const { baseUrl, apiKey } = body;
 
-	if (!baseUrl || !apiKey) {
-		return json({ models: [], error: "Missing baseUrl or apiKey" });
+	if (!baseUrl) {
+		return json({ models: [], error: "Missing baseUrl" });
 	}
 
 	const fb = getFallback(baseUrl);
+
+	if (!apiKey) {
+		return json({ models: [] });
+	}
 
 	try {
 		const res = await fetch(`${baseUrl}/models`, {
@@ -57,7 +61,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					id.includes("o4-") ||
 					id.includes("chat") ||
 					id.includes("reasoner") ||
-					id.includes("v4")
+					id.includes("v4") ||
+					id.includes("5.4") ||
+					id.includes("5.5")
 				);
 			})
 			.map((m) => ({ id: m.id }))

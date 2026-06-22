@@ -3,11 +3,12 @@
 	import { uuid } from "$lib/utils";
 	import { PromptInput, MessageList } from "$lib/components/chat";
 	import { toggleTheme, getTheme } from "$lib/theme.svelte";
-	import {
+	import 	{
 		getKey,
 		getBaseUrl,
 		hasAnyKey,
 		configuredProviders,
+		getSelectedModels,
 		type ProviderKey,
 		providers,
 	} from "$lib/keys.svelte";
@@ -31,6 +32,7 @@
 	let abortController = $state<AbortController | null>(null);
 	let sidebarOpen = $state(false);
 	let webSearch = $state(true);
+	let searchMode = $state<"brave" | "chatgpt">("brave");
 	let searchStatus = $state("");
 
 	const chats = $derived(getChats());
@@ -100,7 +102,6 @@
 
 	async function fetchModels() {
 		const key = getKey(selectedProvider);
-		if (!key) return;
 		modelsLoading = true;
 		try {
 			const res = await fetch("/api/models", {
@@ -112,9 +113,15 @@
 				}),
 			});
 			const data = await res.json();
-			if (data.models?.length) {
-				providerModels[selectedProvider] = data.models.map((m: { id: string }) => m.id);
-				if (!selectedModel || !providerModels[selectedProvider].includes(selectedModel)) {
+			const allModels: string[] = (data.models || []).map((m: { id: string }) => m.id);
+			const selected = getSelectedModels(selectedProvider);
+			if (selected.length > 0) {
+				providerModels[selectedProvider] = allModels.filter((m) => selected.includes(m));
+			} else {
+				providerModels[selectedProvider] = [];
+			}
+			if (!selectedModel || !providerModels[selectedProvider].includes(selectedModel)) {
+				if (providerModels[selectedProvider].length > 0) {
 					selectedModel = providerModels[selectedProvider][0];
 					persistSelection(selectedProvider, selectedModel);
 				}
@@ -125,13 +132,17 @@
 
 	$effect(() => {
 		selectedProvider;
-		if (activeProviders.length > 0) fetchModels();
+		fetchModels();
 	});
 
 	const now = new Date();
 	const SYSTEM_PROMPT = `You are a sharp, warm, and concise assistant. Get straight to the point — no fluff, no throat-clearing. Keep answers short and prioritize what matters most. Use markdown (headers, lists, inline code) when it adds clarity. Be direct but never cold: a touch of personality is welcome, just don't waste words. If you don't know, admit it in one sentence. No greetings, no sign-offs.\n\nCurrent date: ${now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. Current time: ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}. You have the ability to search the web for real-time information when needed. Trust the search results and cite them when used.`;
 	const MAX_TOKENS = 6000;
 	const CHARS_PER_TOKEN = 4;
+
+	function isNativeSearch(model: string): boolean {
+		return model.includes("5.4") || model.includes("search-preview") || model.includes("search");
+	}
 
 	function buildMessages(chatMessages: { role: string; content: string }[], searchContext = "", searchAttempted = false, searchFailed = false) {
 		let systemContent = SYSTEM_PROMPT;
@@ -218,7 +229,17 @@
 		let searchAttempted = false;
 		let searchFailed = false;
 		let searchSources: { title: string; url: string }[] = [];
-		if (webSearch) {
+		const useNativeSearch = webSearch && isNativeSearch(selectedModel);
+		const useGptSearch = webSearch && searchMode === "chatgpt";
+
+		if (useGptSearch) {
+			searchStatus = "Searching with ChatGPT...";
+			await streamGptSearch(messages, assistantIdx);
+			isGenerating = false;
+			return;
+		}
+
+		if (webSearch && !useNativeSearch) {
 			const context = messages.filter((m) => m.content).slice(-2).map((m) => ({ role: m.role, content: m.content.slice(0, 300) }));
 			const decision = await shouldSearch(text, context);
 			console.log("[PrivChat] Search decision:", decision.search ? `YES -> "${decision.query}"` : "NO");
@@ -305,15 +326,20 @@
 		abortController = controller;
 
 		try {
-			const res = await fetch("/api/chat", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+			const body: Record<string, unknown> = {
 					baseUrl: getBaseUrl(selectedProvider),
 					apiKey: getKey(selectedProvider),
 					model: selectedModel,
 					messages: buildMessages(messages, searchContext, searchAttempted, searchFailed),
-				}),
+				};
+				if (useNativeSearch) {
+					body.tools = [{ type: "web_search" }];
+					searchStatus = "Searching web...";
+				}
+			const res = await fetch("/api/chat", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
 				signal: controller.signal,
 			});
 
@@ -337,7 +363,20 @@
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
-				messages[assistantIdx].content += decoder.decode(value, { stream: true });
+				const chunk = decoder.decode(value, { stream: true });
+				const citationMatch = chunk.match(/__CITATIONS__(\[.*\]?)__END__/);
+				if (citationMatch) {
+					try {
+						const citations = JSON.parse(citationMatch[1]);
+						if (Array.isArray(citations) && citations.length > 0) {
+							searchSources = citations;
+						}
+					} catch { /* */ }
+					messages[assistantIdx].content += chunk.replace(/__CITATIONS__.*?__END__/, "");
+					searchStatus = "";
+				} else {
+					messages[assistantIdx].content += chunk;
+				}
 			}
 			if (searchSources.length > 0) {
 				(messages[assistantIdx] as { sources?: { title: string; url: string }[] }).sources = searchSources;
@@ -359,6 +398,57 @@
 	function handleStop() {
 		abortController?.abort();
 		isGenerating = false;
+	}
+
+	async function streamGptSearch(msgs: typeof messages, assistantIdx: number) {
+		try {
+			const lastUser = msgs.filter((m) => m.role === "user" && m.content).slice(-1)[0];
+			if (!lastUser) return;
+
+			const res = await fetch("/api/chatgpt-search", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					query: lastUser.content,
+					messages: msgs.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content })),
+				}),
+				signal: AbortSignal.timeout(120000),
+			});
+
+			if (!res.ok || !res.body) {
+				msgs[assistantIdx].content = `Error: ${res.status}`;
+				updateChatMessages(msgs);
+				return;
+			}
+
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				const chunk = decoder.decode(value, { stream: true });
+				const citationMatch = chunk.match(/__CITATIONS__(\[.*\]?)__END__/);
+				if (citationMatch) {
+					try {
+						const citations = JSON.parse(citationMatch[1]);
+						if (Array.isArray(citations) && citations.length > 0) {
+							(msgs[assistantIdx] as { sources?: { title: string; url: string }[] }).sources = citations;
+						}
+					} catch { /* */ }
+					msgs[assistantIdx].content += chunk.replace(/__CITATIONS__.*?__END__/, "");
+					searchStatus = "";
+				} else {
+					msgs[assistantIdx].content += chunk;
+				}
+			}
+			updateChatMessages(msgs);
+			generateSummary();
+		} catch (err) {
+			if ((err as Error).name !== "AbortError") {
+				msgs[assistantIdx].content = `Error: ${(err as Error).message}`;
+				updateChatMessages(msgs);
+			}
+		}
 	}
 
 	async function shouldSearch(query: string, contextMessages: { role: string; content: string }[]): Promise<{ search: boolean; query: string }> {
@@ -495,9 +585,13 @@
 				<Button variant="ghost" size="icon" onclick={() => { sidebarOpen = false; goto("/settings"); }} aria-label="Settings">
 					{#snippet children()}<Icon name="settings" class="size-5" />{/snippet}
 				</Button>
-				<Button variant="ghost" size="icon" onclick={() => (webSearch = !webSearch)} aria-label="Toggle web search">
+				<Button variant="ghost" size="icon" onclick={() => {
+					if (!webSearch) { webSearch = true; searchMode = "brave"; }
+					else if (searchMode === "brave") { searchMode = "chatgpt"; }
+					else { webSearch = false; }
+				}} aria-label="Toggle search">
 					{#snippet children()}
-						<Icon name="globe" class={webSearch ? "size-5 text-blue-500" : "size-5"} />
+						<Icon name="globe" class={!webSearch ? "size-5 text-muted-foreground" : searchMode === "chatgpt" ? "size-5 text-emerald-500" : "size-5 text-blue-500"} />
 					{/snippet}
 				</Button>
 				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = false)} aria-label="Close">
@@ -558,7 +652,7 @@
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
 							}}
 						>
-							{modelLabel(selectedModel) || "..."}
+							{modelLabel(selectedModel) || (providerModels[selectedProvider]?.length === 0 ? "No models" : "...")}
 							<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
 								<path d="m6 9 6 6 6-6"/>
 							</svg>
@@ -569,7 +663,12 @@
 									{@const info = providers.find((pr) => pr.key === p)!}
 									<div class="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{info.label}</div>
 									{#if providerModels[p].length === 0}
-										<div class="px-2.5 pb-1 text-[11px] text-muted-foreground pl-3">{modelsLoading ? "Loading..." : "No models"}</div>
+										<div class="px-2.5 pb-1 text-[11px] text-muted-foreground pl-3">
+											{modelsLoading ? "Loading..." : "No models selected"}
+											{#if !modelsLoading}
+												<button class="text-blue-500 hover:underline ml-1" onclick={() => { modelMenuOpen = false; goto("/settings"); }}>Configure</button>
+											{/if}
+										</div>
 									{:else}
 										{#each providerModels[p] as modelId}
 											<button
