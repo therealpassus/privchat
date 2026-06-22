@@ -6,8 +6,11 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 		const { query, messages } = await request.json();
 		if (!query && !messages) return new Response("Missing query", { status: 400 });
 
-		const apiKey = env.BRAVE_ANSWERS_API_KEY;
-		if (!apiKey) return new Response("Server Brave Answers key not configured", { status: 500 });
+		const apiKey = env.BRAVE_ANSWERS_API_KEY || env.BRAVE_API_KEY;
+		if (!apiKey) return new Response(JSON.stringify({ error: "No Answers API key configured. Add BRAVE_ANSWERS_API_KEY to .env" }), {
+			status: 500,
+			headers: { "Content-Type": "application/json" },
+		});
 
 		const queryOnly = messages
 			? messages.filter((m: { role: string; content: string }) => m.content).map((m: { content: string }) => m.content).join("\n\n")
