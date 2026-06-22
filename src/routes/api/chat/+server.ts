@@ -49,8 +49,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 						for (const line of lines) {
 							const data = line.slice(6);
 							if (data === "[DONE]") {
-								const header = JSON.stringify(citations);
-								controller.enqueue(new TextEncoder().encode("\n__CITATIONS__" + header + "__END__\n"));
+								if (citations.length > 0) {
+									controller.enqueue(new TextEncoder().encode("\n__CITATIONS__" + JSON.stringify(citations) + "__END__\n"));
+								}
 								controller.close();
 								return;
 							}

@@ -1,38 +1,31 @@
-import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
 	try {
 		const { query, messages } = await request.json();
-		if (!query && !messages) return json({ error: "Missing query or messages" }, { status: 400 });
+		if (!query && !messages) return new Response("Missing query", { status: 400 });
 
-		const apiKey = env.OPENAI_API_KEY;
-		if (!apiKey) return json({ error: "Server OpenAI key not configured" }, { status: 500 });
+		const apiKey = env.BRAVE_ANSWERS_API_KEY;
+		if (!apiKey) return new Response("Server Brave Answers key not configured", { status: 500 });
 
-		const systemPrompt = `You are a sharp, warm, and concise assistant. Answer naturally using web search results. No warnings, no "based on", no URLs in text. Keep answers short. Use markdown for clarity when helpful.`;
+		const queryOnly = messages
+			? messages.filter((m: { role: string; content: string }) => m.content).map((m: { content: string }) => m.content).join("\n\n")
+			: query;
 
-		const chatMessages = messages
-			? [
-					{ role: "system", content: systemPrompt },
-					...messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
-				]
-			: [
-					{ role: "system", content: systemPrompt },
-					{ role: "user", content: query },
-				];
+		console.log("[Answers] Sending to Brave:", queryOnly.length, "chars");
 
-		const res = await fetch("https://api.openai.com/v1/responses", {
+		const res = await fetch("https://api.search.brave.com/res/v1/chat/completions", {
 			method: "POST",
 			headers: {
-				Authorization: `Bearer ${apiKey}`,
 				"Content-Type": "application/json",
+				"x-subscription-token": apiKey,
 			},
 			body: JSON.stringify({
-				model: "gpt-5.4-mini",
-				input: chatMessages,
+				model: "brave",
+				messages: [{ role: "user", content: queryOnly.slice(0, 4000) }],
 				stream: true,
-				tools: [{ type: "web_search" }],
+				enable_citations: true,
 			}),
 			signal: AbortSignal.timeout(120000),
 		});
@@ -44,50 +37,67 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
 		const reader = res.body.getReader();
 		const decoder = new TextDecoder();
-		let citations: { title: string; url: string }[] = [];
+		const citations: { title: string; url: string }[] = [];
+		const seenUrls = new Set<string>();
+		let citationBuffer = "";
 
 		const stream = new ReadableStream({
 			async start(controller) {
 				try {
+					let buffer = "";
 					while (true) {
 						const { done, value } = await reader.read();
 						if (done) break;
 
 						const chunk = decoder.decode(value, { stream: true });
-						const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+						buffer += chunk;
+						const lines = buffer.split("\n");
+						buffer = "";
 
-						for (const line of lines) {
+						for (let i = 0; i < lines.length; i++) {
+							const line = lines[i];
+							if (!line.startsWith("data: ")) continue;
 							const data = line.slice(6);
 							if (data === "[DONE]") {
-								const header = JSON.stringify(citations);
-								controller.enqueue(new TextEncoder().encode("\n__CITATIONS__" + header + "__END__\n"));
+								if (citations.length > 0) {
+									controller.enqueue(new TextEncoder().encode("\n__CITATIONS__" + JSON.stringify(citations) + "__END__\n"));
+								}
 								controller.close();
 								return;
 							}
 							try {
 								const parsed = JSON.parse(data);
-								if (parsed.type === "response.output_text.delta") {
-									controller.enqueue(new TextEncoder().encode(parsed.delta));
-								}
-								if (parsed.type === "response.completed") {
-									const urls = parsed.response?.output?.flatMap((o: { url_citations?: { title?: string; url: string }[] }) => o.url_citations || []);
-									if (urls) {
-										for (const c of urls) {
-											citations.push({
-												title: c.title || (() => { try { return new URL(c.url).hostname; } catch { return c.url; } })(),
-												url: c.url,
-											});
+								const delta = parsed.choices?.[0]?.delta?.content;
+								if (!delta) continue;
+
+								if (delta.startsWith("<citation>")) {
+									citationBuffer += delta;
+									if (citationBuffer.includes("</citation>")) {
+										const match = citationBuffer.match(/<citation>(.*?)<\/citation>/s);
+										if (match) {
+											try {
+												const cite = JSON.parse(match[1]);
+												if (!seenUrls.has(cite.url)) {
+													seenUrls.add(cite.url);
+													citations.push({
+														title: (() => { try { return new URL(cite.url).hostname.replace("www.", ""); } catch { return cite.url; } })(),
+														url: cite.url,
+													});
+												}
+											} catch { /* */ }
 										}
+										citationBuffer = citationBuffer.replace(/<citation>.*?<\/citation>/s, "");
 									}
-									const header = JSON.stringify(citations);
-									controller.enqueue(new TextEncoder().encode("\n__CITATIONS__" + header + "__END__\n"));
-									controller.close();
-									return;
+								} else if (!delta.startsWith("<usage>") && !delta.startsWith("<enum_item>")) {
+									controller.enqueue(new TextEncoder().encode(delta));
 								}
 							} catch {
 								/* skip */
 							}
 						}
+					}
+					if (citations.length > 0) {
+						controller.enqueue(new TextEncoder().encode("\n__CITATIONS__" + JSON.stringify(citations) + "__END__\n"));
 					}
 					controller.close();
 				} catch (err) {

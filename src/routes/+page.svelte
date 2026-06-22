@@ -32,7 +32,6 @@
 	let abortController = $state<AbortController | null>(null);
 	let sidebarOpen = $state(false);
 	let webSearch = $state(true);
-	let searchMode = $state<"brave" | "chatgpt">("brave");
 	let searchStatus = $state("");
 
 	const chats = $derived(getChats());
@@ -144,17 +143,9 @@
 		return model.includes("5.4") || model.includes("search-preview") || model.includes("search");
 	}
 
-	function buildMessages(chatMessages: { role: string; content: string }[], searchContext = "", searchAttempted = false, searchFailed = false) {
-		let systemContent = SYSTEM_PROMPT;
-		if (searchContext) {
-			systemContent = `${SYSTEM_PROMPT}\n\nResearch data:\n\n${searchContext}\n\nAnswer naturally using the data above. No warnings, no "based on", no URLs, no citations. Just the answer. If the exact information is not in the data, say so.`;
-		} else if (searchFailed) {
-			systemContent = `${SYSTEM_PROMPT}\n\nThe user's question required real-time information. A web search was performed but the exact data could not be found. Do not make up information. Simply state that the information could not be found and suggest what the user could search for.`;
-		} else if (searchAttempted) {
-			systemContent = `${SYSTEM_PROMPT}\n\nNote: Web search was attempted but returned no results. Answer based on your knowledge and note your training cutoff if the question requires real-time data.`;
-		}
-		const result: { role: string; content: string }[] = [{ role: "system", content: systemContent }];
-		let used = Math.ceil(systemContent.length / CHARS_PER_TOKEN);
+	function buildMessages(chatMessages: { role: string; content: string }[]) {
+		const result: { role: string; content: string }[] = [{ role: "system", content: SYSTEM_PROMPT }];
+		let used = Math.ceil(SYSTEM_PROMPT.length / CHARS_PER_TOKEN);
 		const recent = chatMessages.filter((m) => m.content).slice(-30);
 		for (let i = recent.length - 1; i >= 0; i--) {
 			const cost = Math.ceil(recent[i].content.length / CHARS_PER_TOKEN);
@@ -225,100 +216,15 @@
 		const assistantIdx = messages.length - 1;
 		isGenerating = true;
 
-		let searchContext = "";
-		let searchAttempted = false;
-		let searchFailed = false;
-		let searchSources: { title: string; url: string }[] = [];
 		const useNativeSearch = webSearch && isNativeSearch(selectedModel);
-		const useGptSearch = webSearch && searchMode === "chatgpt";
-
-		if (useGptSearch) {
-			searchStatus = "Searching with ChatGPT...";
-			await streamGptSearch(messages, assistantIdx);
-			isGenerating = false;
-			return;
-		}
 
 		if (webSearch && !useNativeSearch) {
-			const context = messages.filter((m) => m.content).slice(-2).map((m) => ({ role: m.role, content: m.content.slice(0, 300) }));
-			const decision = await shouldSearch(text, context);
-			console.log("[PrivChat] Search decision:", decision.search ? `YES -> "${decision.query}"` : "NO");
-			if (decision.search) {
-				searchAttempted = true;
-				const searchQuery = decision.query || text;
+			const needsSearch = await shouldSearch(text);
+			if (needsSearch) {
 				searchStatus = "Browsing web...";
-				console.log("[PrivChat] Searching for:", searchQuery);
-
-				try {
-					const sr = await fetch("/api/search", {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ query: searchQuery }),
-						signal: AbortSignal.timeout(5000),
-					});
-					const sd = await sr.json();
-					const braveSources: { title: string; url: string; snippet: string }[] = sd.sources || [];
-					console.log("[PrivChat] Brave returned:", braveSources.length, "sources");
-
-					if (braveSources.length === 0) {
-						searchFailed = true;
-						searchStatus = "";
-					} else {
-
-					const accumulated: string[] = [];
-					let foundIdx = -1;
-					for (let i = 0; i < braveSources.length; i++) {
-						const src = braveSources[i];
-						const domain = (() => { try { return new URL(src.url).hostname.replace("www.", ""); } catch { return ""; } })();
-						searchStatus = `Reading ${domain}...`;
-						console.log(`[PrivChat] Scraping source ${i + 1}:`, src.url);
-						const sc = await fetch("/api/scrape", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({ url: src.url }),
-							signal: AbortSignal.timeout(6000),
-						});
-						const scraped = await sc.json();
-						const content = scraped.text || "";
-						console.log(`[PrivChat] Source ${i + 1} scraped:`, content.length, "chars");
-						if (content) console.log(`[PrivChat] Source ${i + 1} content:`, content.slice(0, 500));
-
-						if (content.length > 100) {
-							const entry = `(${i + 1}) [${src.title.slice(0, 80)}](${src.url})\n${content.slice(0, 2500)}`;
-							accumulated.push(entry);
-						} else {
-							const entry = `(${i + 1}) [${src.title.slice(0, 80)}](${src.url})\n${src.snippet}`;
-							accumulated.push(entry);
-						}
-
-						searchStatus = "";
-						const enough = await hasEnoughInfo(text, accumulated.join("\n\n"));
-						if (enough) {
-							console.log(`[PrivChat] Enough info after source ${i + 1}`);
-							foundIdx = i;
-							break;
-						}
-						if (i === braveSources.length - 1) {
-						}
-					}
-
-					searchContext = accumulated.join("\n\n");
-					if (foundIdx >= 0) {
-						searchSources = [{ title: braveSources[foundIdx].title, url: braveSources[foundIdx].url }];
-					} else if (accumulated.length > 0 && accumulated.some((e) => e.length > 200)) {
-						const lastIdx = accumulated.length - 1;
-						searchSources = [{ title: braveSources[lastIdx].title, url: braveSources[lastIdx].url }];
-					} else {
-						searchSources = [];
-						searchFailed = true;
-					}
-					console.log("[PrivChat] Search context:", searchContext.length, "chars from", accumulated.length, "sources");
-					console.log("[PrivChat] LLM receives:", searchContext.slice(0, 1000));
-					searchStatus = "";
-					}
-				} catch { /* fall through */ }
-			} else {
-				searchStatus = "";
+				await streamGptSearch(messages, assistantIdx);
+				isGenerating = false;
+				return;
 			}
 		}
 
@@ -330,7 +236,7 @@
 					baseUrl: getBaseUrl(selectedProvider),
 					apiKey: getKey(selectedProvider),
 					model: selectedModel,
-					messages: buildMessages(messages, searchContext, searchAttempted, searchFailed),
+					messages: buildMessages(messages),
 				};
 				if (useNativeSearch) {
 					body.tools = [{ type: "web_search" }];
@@ -369,17 +275,13 @@
 					try {
 						const citations = JSON.parse(citationMatch[1]);
 						if (Array.isArray(citations) && citations.length > 0) {
-							searchSources = citations;
+							(messages[assistantIdx] as { sources?: { title: string; url: string }[] }).sources = citations;
 						}
 					} catch { /* */ }
 					messages[assistantIdx].content += chunk.replace(/__CITATIONS__.*?__END__/, "");
-					searchStatus = "";
 				} else {
 					messages[assistantIdx].content += chunk;
 				}
-			}
-			if (searchSources.length > 0) {
-				(messages[assistantIdx] as { sources?: { title: string; url: string }[] }).sources = searchSources;
 			}
 			updateChatMessages(messages);
 			console.log("[PrivChat] LLM response:", messages[assistantIdx].content.length, "chars");
@@ -423,14 +325,19 @@
 
 			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
+			let rawChunks = 0;
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
 				const chunk = decoder.decode(value, { stream: true });
+				rawChunks++;
+				if (rawChunks <= 3) console.log(`[PrivChat] Brave raw chunk ${rawChunks}:`, chunk.slice(0, 300));
 				const citationMatch = chunk.match(/__CITATIONS__(\[.*\]?)__END__/);
 				if (citationMatch) {
 					try {
 						const citations = JSON.parse(citationMatch[1]);
+						console.log("[PrivChat] Brave citations:", citations.length, "sources");
+						citations.forEach((c: { title: string; url: string }, i: number) => console.log(`[PrivChat]   ${i + 1}. ${c.title} | ${c.url}`));
 						if (Array.isArray(citations) && citations.length > 0) {
 							(msgs[assistantIdx] as { sources?: { title: string; url: string }[] }).sources = citations;
 						}
@@ -451,69 +358,28 @@
 		}
 	}
 
-	async function shouldSearch(query: string, contextMessages: { role: string; content: string }[]): Promise<{ search: boolean; query: string }> {
+	async function shouldSearch(query: string): Promise<boolean> {
 		try {
+			const key = getKey(selectedProvider);
+			if (!key) return false;
 			const res = await fetch("/api/chat", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					baseUrl: getBaseUrl(selectedProvider),
-					apiKey: getKey(selectedProvider),
+					apiKey: key,
 					model: selectedModel,
 					messages: [
 						{
 							role: "system",
-							content:
-								`Current date: ${now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. Current time: ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}.\n\nDecide if the user needs a web search. If YES, write a precise Brave Search query (3-8 keywords).\n\nCRITICAL: If the conversation context shows the user is asking a follow-up about specific data (prices, numbers, facts, names, events) that was previously answered via a web search, you MUST say YES to search for the new specific question. Never answer follow-ups about specific data from memory.\n\nSearch YES triggers (any of these):\n- "latest", "current", "today", "now", "recent", "this week/month/year"\n- "price of", "rate", "value", "cost", "worth"\n- "news about", "what happened", "update on"\n- Named entities with time: "Ethereum 2026", "Trump trial", "Olympics"\n- Stats, numbers, or data that changed in the last 12 months\n- "block height", "gas fee", "BTC dominance", any real-time metric\n- Events after your training cutoff\n- Follow-up questions about specific data from previous answers\n\nSearch NO triggers:\n- Coding, algorithms, debugging, syntax\n- Math, physics, philosophy definitions\n- "What is", "explain", "how does" for timeless concepts\n- Opinions, advice, creative writing\n\nReply format:\nYES: <search query>\nNO`,
+							content: `Current date: ${now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. Reply YES or NO only. Does this question need real-time web data, current prices, latest news, recent events, or facts beyond your training cutoff? Say NO for coding, math, definitions, opinions, timeless knowledge.`,
 						},
-						...contextMessages,
 						{ role: "user", content: query },
-					],
-				}),
-				signal: AbortSignal.timeout(8000),
-			});
-			if (!res.ok || !res.body) return { search: false, query: "" };
-			const reader = res.body.getReader();
-			const decoder = new TextDecoder();
-			let answer = "";
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				answer += decoder.decode(value, { stream: true });
-		}
-		const trimmed = answer.trim();
-		console.log("[PrivChat] Search decision raw:", trimmed);
-		if (trimmed.toUpperCase().startsWith("YES")) {
-			const searchQuery = trimmed.replace(/^YES:?\s*/i, "").trim() || query;
-			return { search: true, query: searchQuery };
-		}
-		return { search: false, query: "" };
-		} catch {
-			return { search: false, query: "" };
-		}
-	}
-
-	async function hasEnoughInfo(query: string, sources: string): Promise<boolean> {
-		try {
-			const res = await fetch("/api/chat", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					baseUrl: getBaseUrl(selectedProvider),
-					apiKey: getKey(selectedProvider),
-					model: selectedModel,
-					messages: [
-						{
-							role: "system",
-						content:
-								`Current date: ${now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. Reply with only YES or NO. Do the provided sources contain relevant information to answer the user's question? Say YES if there is any useful data, numbers, or facts. Only say NO if the sources are completely irrelevant or empty.`,
-						},
-						{ role: "user", content: `Question: ${query}\n\nSources:\n${sources.slice(0, 2000)}` },
 					],
 				}),
 				signal: AbortSignal.timeout(6000),
 			});
-			if (!res.ok || !res.body) return true;
+			if (!res.ok || !res.body) return false;
 			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
 			let answer = "";
@@ -522,9 +388,12 @@
 				if (done) break;
 				answer += decoder.decode(value, { stream: true });
 			}
-			return answer.trim().toUpperCase().startsWith("YES");
+			const trimmed = answer.trim().replace(/__CITATIONS__.*?__END__/, "").trim();
+			const result = trimmed.toUpperCase().startsWith("YES");
+			console.log("[PrivChat] Search decision:", result ? "YES" : "NO", "|", trimmed);
+			return result;
 		} catch {
-			return true;
+			return false;
 		}
 	}
 
@@ -585,13 +454,9 @@
 				<Button variant="ghost" size="icon" onclick={() => { sidebarOpen = false; goto("/settings"); }} aria-label="Settings">
 					{#snippet children()}<Icon name="settings" class="size-5" />{/snippet}
 				</Button>
-				<Button variant="ghost" size="icon" onclick={() => {
-					if (!webSearch) { webSearch = true; searchMode = "brave"; }
-					else if (searchMode === "brave") { searchMode = "chatgpt"; }
-					else { webSearch = false; }
-				}} aria-label="Toggle search">
+				<Button variant="ghost" size="icon" onclick={() => (webSearch = !webSearch)} aria-label="Toggle search">
 					{#snippet children()}
-						<Icon name="globe" class={!webSearch ? "size-5 text-muted-foreground" : searchMode === "chatgpt" ? "size-5 text-emerald-500" : "size-5 text-blue-500"} />
+						<Icon name="globe" class={webSearch ? "size-5 text-blue-500" : "size-5 text-muted-foreground"} />
 					{/snippet}
 				</Button>
 				<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = false)} aria-label="Close">
