@@ -1,9 +1,15 @@
 <script lang="ts">
-	import { marked } from "marked";
+	import { marked, type Tokens } from "marked";
 
 	let { content, class: className = "" }: { content: string; class?: string } = $props();
 
 	const renderer = new marked.Renderer();
+
+	renderer.link = function ({ href, title, tokens }: Tokens.Link) {
+		const text = tokens?.map((t) => ("text" in t ? t.text : "")).join("") || href;
+		const titleAttr = title ? ` title="${title}"` : "";
+		return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+	};
 
 	renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
 		const escaped = escapeHtml(text);

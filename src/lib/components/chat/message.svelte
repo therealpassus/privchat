@@ -6,11 +6,13 @@
 		role,
 		content,
 		time,
+		sources = [],
 		class: className = ""
 	}: {
 		role: "user" | "assistant";
 		content: string;
 		time?: string;
+		sources?: { title: string; url: string }[];
 		class?: string;
 	} = $props();
 
@@ -32,9 +34,10 @@
 </script>
 
 <div class={cn("flex px-4 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
+	<div class="flex flex-col max-w-[78%]">
 	<button
 		class={cn(
-			"max-w-[78%] min-w-0 w-fit rounded-[14px] break-words overflow-hidden shadow-sm relative text-left",
+			"min-w-0 w-fit rounded-[14px] break-words overflow-hidden shadow-sm relative text-left",
 			role === "user"
 				? "bg-blue-500 text-white rounded-br-[4px] px-3 py-2 text-[14px] leading-snug"
 				: content
@@ -67,6 +70,22 @@
 			</div>
 		{/if}
 	</button>
+	{#if role === "assistant" && sources.length > 0 && content}
+		<div class="flex flex-wrap gap-1 mt-1">
+			{#each sources as source}
+				{@const host = (() => { try { return new URL(source.url).hostname.replace("www.", ""); } catch { return ""; } })()}
+				{#if host}
+					<a href={source.url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-full bg-background/40 border border-border/40 px-2 py-0.5 text-[10px] leading-none text-muted-foreground hover:bg-background hover:text-foreground no-underline">
+						<span class="flex size-3.5 items-center justify-center rounded-full bg-blue-500 text-[8px] font-bold text-white shrink-0">
+							{host.charAt(0).toUpperCase()}
+						</span>
+						<span class="truncate max-w-[100px]">{host}</span>
+					</a>
+				{/if}
+			{/each}
+		</div>
+	{/if}
+	</div>
 </div>
 
 <style>

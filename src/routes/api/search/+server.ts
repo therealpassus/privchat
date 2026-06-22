@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 					"Accept-Encoding": "gzip",
 					"X-Subscription-Token": apiKey,
 				},
-				signal: AbortSignal.timeout(5000),
+				signal: AbortSignal.timeout(6000),
 			}
 		);
 
@@ -27,15 +27,15 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 		const data = await res.json();
 		const results: { title: string; description: string; url: string }[] = data.web?.results || [];
 
-		const parts = results.map((r, i) =>
-			`(${i + 1}) ${r.title}\n${r.description}\nSource: ${r.url}`
-		);
+		const parts = results.map((r, i) => {
+			const title = r.title.replace(/\s*[-|]\s*[^-|]*$/, "").trim().slice(0, 80);
+			return { title, url: r.url, snippet: r.description.replace(/<[^>]*>/g, "").slice(0, 200) };
+		});
 
 		return json({
-			results: parts.join("\n\n").slice(0, 3000),
-			sources: results.length,
+			sources: parts,
 		});
 	} catch {
-		return json({ results: "", sources: 0 });
+		return json({ sources: [] });
 	}
 };

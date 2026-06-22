@@ -7,7 +7,7 @@
 		messages = [],
 		class: className = ""
 	}: {
-		messages: { id: string; role: "user" | "assistant"; content: string; time?: string }[];
+		messages: { id: string; role: "user" | "assistant"; content: string; time?: string; sources?: { title: string; url: string }[] }[];
 		class?: string;
 	} = $props();
 
@@ -84,7 +84,7 @@
 					</span>
 				</div>
 				{#each group.messages as msg (msg.id)}
-					<Message role={msg.role} content={msg.content} time={msg.time} />
+					<Message role={msg.role} content={msg.content} time={msg.time} sources={msg.sources} />
 				{/each}
 			{/each}
 		</div>
