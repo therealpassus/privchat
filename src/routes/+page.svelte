@@ -318,6 +318,7 @@
 			});
 
 			if (!res.ok || !res.body) {
+				searchStatus = "";
 				msgs[assistantIdx].content = `Error: ${res.status}`;
 				updateChatMessages(msgs);
 				return;
@@ -348,9 +349,11 @@
 					msgs[assistantIdx].content += chunk;
 				}
 			}
+			searchStatus = "";
 			updateChatMessages(msgs);
 			generateSummary();
 		} catch (err) {
+			searchStatus = "";
 			if ((err as Error).name !== "AbortError") {
 				msgs[assistantIdx].content = `Error: ${(err as Error).message}`;
 				updateChatMessages(msgs);
