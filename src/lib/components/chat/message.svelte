@@ -34,7 +34,7 @@
 </script>
 
 <div class={cn("flex px-4 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
-	<div class="flex flex-col max-w-[78%]">
+	<div class="flex flex-col max-w-[92%]">
 	<button
 		class={cn(
 			"min-w-0 max-w-full rounded-[14px] break-words overflow-x-auto overflow-y-hidden shadow-sm relative text-left",
