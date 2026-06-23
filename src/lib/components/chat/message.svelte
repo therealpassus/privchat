@@ -37,7 +37,7 @@
 	<div class="flex flex-col max-w-[78%]">
 	<button
 		class={cn(
-			"min-w-0 w-fit rounded-[14px] break-words overflow-x-auto overflow-y-hidden shadow-sm relative text-left",
+			"min-w-0 max-w-full rounded-[14px] break-words overflow-x-auto overflow-y-hidden shadow-sm relative text-left",
 			role === "user"
 				? "bg-blue-500 text-white rounded-br-[4px] px-3 py-2 text-[14px] leading-snug"
 				: content
