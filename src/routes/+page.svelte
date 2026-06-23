@@ -570,7 +570,7 @@
 			</Button>
 		</header>
 
-		<MessageList {messages} />
+		<MessageList {messages} class="pb-[calc(5rem+env(safe-area-inset-bottom))]" />
 
 		{#if !hasAnyKey()}
 			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
@@ -594,7 +594,7 @@
 		{/if}
 
 		{#if hasAnyKey()}
-		<div class="shrink-0 px-3 pb-3 pt-1" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
+		<div class="absolute bottom-0 left-0 right-0 z-10 px-3 pt-1" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
 			<PromptInput
 				bind:value={inputValue}
 				isGenerating={isGenerating}
