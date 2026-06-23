@@ -64,7 +64,7 @@
 		border-radius: 0.5rem;
 		border: 1px solid var(--border);
 		background: oklch(0.15 0.005 285);
-		overflow: hidden;
+		overflow-x: auto;
 		max-width: 100%;
 	}
 	.markdown-content :global(.code-block-header) {
