@@ -66,6 +66,24 @@
 		background: oklch(0.15 0.005 285);
 		overflow-x: auto;
 		max-width: 100%;
+		display: block;
+	}
+	.markdown-content :global(.code-block-wrapper pre) {
+		margin: 0;
+		border-radius: 0;
+		border: none;
+		background: transparent;
+		display: block;
+		overflow-x: auto;
+		max-width: 100%;
+		white-space: pre;
+	}
+	.markdown-content :global(.code-block-wrapper code) {
+		background: transparent;
+		padding: 0;
+		font-size: 0.8125rem;
+		color: oklch(0.95 0 0);
+		white-space: pre;
 	}
 	.markdown-content :global(.code-block-header) {
 		display: flex;
@@ -89,22 +107,9 @@
 		cursor: pointer;
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
-		transition: background 150ms;
 	}
 	.markdown-content :global(.code-copy-btn:hover) {
 		background: oklch(0.3 0.005 285);
 		color: oklch(0.8 0 0);
-	}
-	.markdown-content :global(.code-block-wrapper pre) {
-		margin: 0;
-		border-radius: 0;
-		border: none;
-		background: transparent;
-	}
-	.markdown-content :global(.code-block-wrapper code) {
-		background: transparent;
-		padding: 0;
-		font-size: 0.8125rem;
-		color: oklch(0.95 0 0);
 	}
 </style>

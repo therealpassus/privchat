@@ -179,6 +179,7 @@
 		overflow-x: auto;
 		white-space: pre;
 		max-width: 100%;
+		display: block;
 		border-radius: 0.5rem;
 		border: 1px solid var(--border);
 		background: oklch(0.15 0.005 285);
