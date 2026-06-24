@@ -570,7 +570,7 @@
 			</Button>
 		</header>
 
-		<MessageList {messages} class="pb-[calc(5rem+env(safe-area-inset-bottom))]" />
+		<MessageList {messages} />
 
 		{#if !hasAnyKey()}
 			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">
