@@ -22,13 +22,7 @@
 		class?: string;
 	} = $props();
 
-	let textareaEl: HTMLTextAreaElement;
-
-	$effect(() => {
-		if (autofocus && textareaEl) {
-			textareaEl.focus();
-		}
-	});
+	let textareaEl = $state<HTMLTextAreaElement>();
 	let rows = $state(1);
 
 	function resize() {
@@ -36,7 +30,9 @@
 		textareaEl.style.height = "0px";
 		void textareaEl.offsetHeight;
 		textareaEl.style.height = textareaEl.scrollHeight + "px";
-		rows = Math.min(Math.ceil(textareaEl.scrollHeight / 24), 6);
+		const lineHeight = 24;
+		const textHeight = textareaEl.scrollHeight - 48;
+		rows = Math.min(Math.max(1, Math.ceil(textHeight / lineHeight)), 6);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {

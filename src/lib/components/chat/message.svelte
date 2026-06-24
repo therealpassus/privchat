@@ -37,7 +37,7 @@
 	{#if role === "user"}
 		<div class="flex flex-col max-w-[85%]">
 			<button
-				class="min-w-0 max-w-full rounded-2xl bg-neutral-900 dark:bg-neutral-800 text-neutral-100 px-3.5 py-2 text-[15px] leading-relaxed break-words overflow-hidden text-left relative"
+				class="min-w-0 max-w-full rounded-2xl bg-slate-800 dark:bg-slate-700 text-slate-100 px-3.5 py-2 text-[15px] leading-relaxed break-words overflow-hidden text-left relative border border-white/[0.06]"
 				oncontextmenu={(e) => { e.preventDefault(); handlePress(); }}
 			>
 				<span class="whitespace-pre-wrap">{content}</span>
