@@ -33,12 +33,6 @@
 	}
 
 	const sourceColors = ["#f0abfc", "#fbbf24", "#34d399", "#60a5fa", "#fb7185", "#a78bfa", "#f472b6", "#38bdf8", "#fb923c"];
-
-	function sourceColor(host: string): string {
-		let hash = 0;
-		for (let i = 0; i < host.length; i++) hash = ((hash << 5) - hash) + host.charCodeAt(i);
-		return sourceColors[Math.abs(hash) % sourceColors.length];
-	}
 </script>
 
 <div class={cn("flex px-5 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
@@ -81,10 +75,10 @@
 			{/if}
 			{#if sources.length > 0}
 				<div class="flex flex-wrap gap-1.5 mt-2.5">
-					{#each sources as source}
+					{#each sources as source, idx}
 						{@const host = (() => { try { return new URL(source.url).hostname.replace("www.", ""); } catch { return ""; } })()}
 						{#if host}
-							{@const color = sourceColor(host)}
+							{@const color = sourceColors[idx % sourceColors.length]}
 							<a href={source.url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-full bg-muted/50 border border-border/40 px-2 py-0.5 text-[10px] leading-none text-muted-foreground hover:bg-muted no-underline">
 								<span class="flex size-3.5 items-center justify-center rounded-full text-[8px] font-bold text-white shrink-0" style="background:{color}">
 									{host.charAt(0).toUpperCase()}
