@@ -31,13 +31,21 @@
 		copied = true;
 		setTimeout(() => (copied = false), 1200);
 	}
+
+	const sourceColors = ["#f0abfc", "#fbbf24", "#34d399", "#60a5fa", "#fb7185", "#a78bfa", "#f472b6", "#38bdf8", "#fb923c"];
+
+	function sourceColor(host: string): string {
+		let hash = 0;
+		for (let i = 0; i < host.length; i++) hash = ((hash << 5) - hash) + host.charCodeAt(i);
+		return sourceColors[Math.abs(hash) % sourceColors.length];
+	}
 </script>
 
 <div class={cn("flex px-5 py-2", role === "user" ? "justify-end" : "justify-start", className)}>
 	{#if role === "user"}
 		<div class="flex flex-col max-w-[85%]">
 			<button
-				class="min-w-0 max-w-full rounded-2xl bg-slate-800 dark:bg-slate-700 text-slate-100 px-3.5 py-2 text-[15px] leading-relaxed break-words overflow-hidden text-left relative border border-white/[0.06]"
+				class="min-w-0 max-w-full rounded-2xl bg-neutral-950 text-neutral-100 px-3.5 py-2 text-[15px] leading-relaxed break-words overflow-hidden text-left relative border border-white/[0.06]"
 				oncontextmenu={(e) => { e.preventDefault(); handlePress(); }}
 			>
 				<span class="whitespace-pre-wrap">{content}</span>
@@ -76,8 +84,9 @@
 					{#each sources as source}
 						{@const host = (() => { try { return new URL(source.url).hostname.replace("www.", ""); } catch { return ""; } })()}
 						{#if host}
+							{@const color = sourceColor(host)}
 							<a href={source.url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-full bg-muted/50 border border-border/40 px-2 py-0.5 text-[10px] leading-none text-muted-foreground hover:bg-muted no-underline">
-								<span class="flex size-3.5 items-center justify-center rounded-full bg-neutral-500 text-[8px] font-bold text-white shrink-0">
+								<span class="flex size-3.5 items-center justify-center rounded-full text-[8px] font-bold text-white shrink-0" style="background:{color}">
 									{host.charAt(0).toUpperCase()}
 								</span>
 								<span class="truncate max-w-[100px]">{host}</span>

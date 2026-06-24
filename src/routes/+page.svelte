@@ -584,20 +584,12 @@
 			</div>
 		{/if}
 
-		{#if searchStatus}
-			<div class="flex justify-center pb-1">
-				<span class="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/60 rounded-full px-3 py-1">
-					<span class="flex size-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-					{searchStatus}
-				</span>
-			</div>
-		{/if}
-
 		{#if hasAnyKey()}
 		<div class="absolute bottom-0 left-0 right-0 z-10 px-3 pt-1" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
 			<PromptInput
 				bind:value={inputValue}
 				isGenerating={isGenerating}
+				agentStatus={searchStatus}
 				onSubmit={handleSubmit}
 				onStop={handleStop}
 			/>
