@@ -496,7 +496,7 @@
 	</aside>
 
 	<div class="flex flex-1 flex-col overflow-x-hidden">
-		<header class="flex h-14 shrink-0 items-center justify-between px-4">
+		<header class="absolute top-0 left-0 right-0 z-10 flex h-14 items-center justify-between px-4" style="padding-top: env(safe-area-inset-top)">
 			<button
 				class="inline-flex size-10 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
 				onclick={() => (sidebarOpen = true)} aria-label="Open chats"
@@ -519,7 +519,7 @@
 							</svg>
 						</button>
 						{#if modelMenuOpen}
-							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-border/40 bg-popover/95 backdrop-blur-2xl p-2 shadow-xl shadow-black/5">
+							<div role="menu" tabindex="-1" class="absolute left-1/2 -translate-x-1/2 top-full z-50 mt-2 w-56 rounded-2xl border border-border/40 bg-popover/95 backdrop-blur-2xl p-2 shadow-xl shadow-black/5">
 								{#each activeProviders as p}
 									{@const info = providers.find((pr) => pr.key === p)!}
 									<div class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">{info.label}</div>
@@ -564,7 +564,7 @@
 			</button>
 		</header>
 
-		<MessageList {messages} />
+		<MessageList {messages} class="pt-[calc(3.5rem+env(safe-area-inset-top))]" />
 
 		{#if !hasAnyKey()}
 			<div class="flex items-center justify-between border-t bg-muted/50 px-4 py-2.5" style="padding-bottom: calc(0.625rem + env(safe-area-inset-bottom))">

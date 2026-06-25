@@ -76,7 +76,7 @@
 			</div>
 		</div>
 	{:else}
-		<div class="pt-4 pb-32">
+		<div class="pt-4 pb-40">
 			{#each grouped as group}
 				<div class="flex justify-center pt-4 pb-2">
 					<span class="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-3 py-0.5">
