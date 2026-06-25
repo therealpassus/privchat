@@ -564,6 +564,7 @@
 			</button>
 		</header>
 
+		<div class="absolute top-0 left-0 right-0 h-16 z-[5] pointer-events-none" style="background:linear-gradient(to bottom, var(--background), transparent)"></div>
 		<MessageList {messages} class="pt-[calc(3.5rem+env(safe-area-inset-top))]" />
 
 		{#if !hasAnyKey()}
