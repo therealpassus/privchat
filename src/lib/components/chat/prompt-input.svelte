@@ -90,16 +90,20 @@
 				: hasContent && !disabled ? "bg-foreground text-background"
 				: "bg-muted-foreground/15 text-muted-foreground"
 			)}
-			disabled={(!value.trim() && !isGenerating && !agentStatus) || disabled}
+			disabled={(!value.trim() && !isGenerating && !agentStatus) || disabled || !!agentStatus}
 			onclick={() => isGenerating ? onStop?.() : handleSubmit()}
 			aria-label={isGenerating ? "Stop generating" : agentStatus ? "Processing" : "Send message"}
 		>
-			{#if isGenerating}
+			{#if agentStatus}
+				{#if agentStatus.toLowerCase().includes("browsing")}
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="agent-pulse">
+						<circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+					</svg>
+				{:else}
+					<span class="agent-spinner"></span>
+				{/if}
+			{:else if isGenerating}
 				<Icon name="square" class="size-4" />
-			{:else if agentStatus}
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="agent-pulse">
-					<circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-				</svg>
 			{:else}
 				<Icon name="arrow-up" class="size-5" />
 			{/if}
@@ -108,11 +112,23 @@
 </div>
 
 <style>
-	.agent-pulse {
-		animation: agent-glow 2s ease-in-out infinite;
+	.agent-spinner {
+		width: 18px;
+		height: 18px;
+		border: 2px solid currentColor;
+		border-top-color: transparent;
+		border-radius: 50%;
+		animation: agent-spin 0.6s linear infinite;
+		opacity: 0.6;
 	}
-	@keyframes agent-glow {
-		0%, 100% { opacity: 0.5; }
-		50% { opacity: 1; }
+	@keyframes agent-spin {
+		to { transform: rotate(360deg); }
+	}
+	.agent-pulse {
+		animation: agent-blue-pulse 1.5s ease-in-out infinite;
+	}
+	@keyframes agent-blue-pulse {
+		0%, 100% { opacity: 0.4; filter: drop-shadow(0 0 2px #3B82F6); }
+		50% { opacity: 1; filter: drop-shadow(0 0 6px #3B82F6); }
 	}
 </style>

@@ -18,7 +18,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
 		const compact = `Be concise. Use 1-3 short sentences. Skip fluff.\n\n${queryOnly}`;
 
-		console.log("[Answers] Sending to Brave:", compact.length, "chars");
+		console.log("[Answers] Sending to Brave:", compact);
+		console.log("[Answers] Sending to Brave length:", compact.length, "chars");
 
 		const res = await fetch("https://api.search.brave.com/res/v1/chat/completions", {
 			method: "POST",

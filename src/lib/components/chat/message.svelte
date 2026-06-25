@@ -66,12 +66,6 @@
 						<span class="text-[10px] text-muted-foreground/40">{formatTime(time)}</span>
 					</div>
 				{/if}
-			{:else}
-				<div class="flex items-center gap-1.5 py-1">
-					<div class="shimmer-dot"></div>
-					<div class="shimmer-dot" style="animation-delay: 0.2s"></div>
-					<div class="shimmer-dot" style="animation-delay: 0.4s"></div>
-				</div>
 			{/if}
 			{#if sources.length > 0}
 				<div class="flex flex-wrap gap-1.5 mt-2.5">
@@ -98,18 +92,5 @@
 		-webkit-touch-callout: none;
 		-webkit-user-select: none;
 		user-select: none;
-	}
-
-	.shimmer-dot {
-		width: 5px;
-		height: 5px;
-		border-radius: 50%;
-		background: var(--muted-foreground);
-		opacity: 0.25;
-		animation: shimmer-dot 1.2s ease-in-out infinite;
-	}
-	@keyframes shimmer-dot {
-		0%, 60%, 100% { opacity: 0.25; }
-		30% { opacity: 0.6; }
 	}
 </style>

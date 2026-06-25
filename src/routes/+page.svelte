@@ -219,13 +219,15 @@
 		const useNativeSearch = webSearch && isNativeSearch(selectedModel);
 
 		if (webSearch && !useNativeSearch) {
-			const needsSearch = await shouldSearch(text);
-			if (needsSearch) {
-				searchStatus = "Browsing web...";
-				await streamGptSearch(messages, assistantIdx);
+			searchStatus = "Thinking...";
+			const decision = await shouldSearch(text);
+			if (decision.search) {
+				searchStatus = "Browsing...";
+				await streamGptSearch(messages, assistantIdx, decision.searchQuery);
 				isGenerating = false;
 				return;
 			}
+			searchStatus = "";
 		}
 
 		const controller = new AbortController();
@@ -302,18 +304,17 @@
 		isGenerating = false;
 	}
 
-	async function streamGptSearch(msgs: typeof messages, assistantIdx: number) {
+	async function streamGptSearch(msgs: typeof messages, assistantIdx: number, searchQuery?: string) {
 		try {
 			const lastUser = msgs.filter((m) => m.role === "user" && m.content).slice(-1)[0];
-			if (!lastUser) return;
+			const query = searchQuery || lastUser?.content;
+			if (!query) return;
+			console.log("[PrivChat] Brave query:", query);
 
 			const res = await fetch("/api/chatgpt-search", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					query: lastUser.content,
-					messages: msgs.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content })),
-				}),
+				body: JSON.stringify({ query }),
 				signal: AbortSignal.timeout(120000),
 			});
 
@@ -326,13 +327,12 @@
 
 			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
-			let rawChunks = 0;
+			let fullResponse = "";
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
 				const chunk = decoder.decode(value, { stream: true });
-				rawChunks++;
-				if (rawChunks <= 3) console.log(`[PrivChat] Brave raw chunk ${rawChunks}:`, chunk.slice(0, 300));
+				fullResponse += chunk;
 				const citationMatch = chunk.match(/__CITATIONS__(\[.*\]?)__END__/);
 				if (citationMatch) {
 					try {
@@ -349,6 +349,7 @@
 					msgs[assistantIdx].content += chunk;
 				}
 			}
+			console.log("[PrivChat] Brave complete answer:", fullResponse.replace(/__CITATIONS__.*?__END__/, "").trim());
 			searchStatus = "";
 			updateChatMessages(msgs);
 			generateSummary();
@@ -361,43 +362,34 @@
 		}
 	}
 
-	async function shouldSearch(query: string): Promise<boolean> {
+	async function shouldSearch(query: string): Promise<{ search: boolean; searchQuery: string }> {
 		try {
 			const key = getKey(selectedProvider);
-			if (!key) return false;
+			if (!key) return { search: false, searchQuery: "" };
+			const context = messages.filter((m) => m.content).slice(-4).map((m) => `${m.role}: ${m.content.slice(0, 200)}`).join("\n");
 			const res = await fetch("/api/chat", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
+				method: "POST", headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
-					baseUrl: getBaseUrl(selectedProvider),
-					apiKey: key,
-					model: selectedModel,
+					baseUrl: getBaseUrl(selectedProvider), apiKey: key, model: selectedModel,
 					messages: [
-						{
-							role: "system",
-							content: `Current date: ${now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. Reply YES or NO only. Does this question need real-time web data, current prices, latest news, recent events, or facts beyond your training cutoff? Say NO for coding, math, definitions, opinions, timeless knowledge.`,
-						},
-						{ role: "user", content: query },
+						{ role: "system", content: `Current date: ${now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.\n\nDecide if the user needs a web search. If YES, also rewrite the query into an optimized Brave search query (3-8 keywords). Enrich with context from previous messages if it's a follow-up.\n\nReply: YES: <search query>\nReply: NO` },
+						{ role: "user", content: `Context:\n${context}\n\nUser: ${query}` },
 					],
 				}),
-				signal: AbortSignal.timeout(6000),
+				signal: AbortSignal.timeout(5000),
 			});
-			if (!res.ok || !res.body) return false;
-			const reader = res.body.getReader();
-			const decoder = new TextDecoder();
-			let answer = "";
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				answer += decoder.decode(value, { stream: true });
+			if (!res.ok || !res.body) return { search: false, searchQuery: "" };
+			const reader = res.body.getReader(); const decoder = new TextDecoder(); let a = "";
+			while (true) { const { done, value } = await reader.read(); if (done) break; a += decoder.decode(value, { stream: true }); }
+			const trimmed = a.trim().replace(/__CITATIONS__.*?__END__/, "").trim();
+			if (trimmed.toUpperCase().startsWith("YES")) {
+				const sq = trimmed.replace(/^YES:?\s*/i, "").trim() || query;
+				console.log("[PrivChat] Search needed: YES |", sq);
+				return { search: true, searchQuery: sq };
 			}
-			const trimmed = answer.trim().replace(/__CITATIONS__.*?__END__/, "").trim();
-			const result = trimmed.toUpperCase().startsWith("YES");
-			console.log("[PrivChat] Search decision:", result ? "YES" : "NO", "|", trimmed);
-			return result;
-		} catch {
-			return false;
-		}
+			console.log("[PrivChat] Search needed: NO");
+			return { search: false, searchQuery: "" };
+		} catch { return { search: false, searchQuery: "" }; }
 	}
 
 	async function generateSummary() {
@@ -504,17 +496,18 @@
 	</aside>
 
 	<div class="flex flex-1 flex-col overflow-x-hidden">
-		<header class="flex h-14 shrink-0 items-center justify-between border-b px-4">
-			<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} aria-label="Open chats">
-				{#snippet children()}
-					<Icon name="menu" class="size-4" />
-				{/snippet}
-			</Button>
+		<header class="flex h-14 shrink-0 items-center justify-between px-4">
+			<button
+				class="inline-flex size-9 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
+				onclick={() => (sidebarOpen = true)} aria-label="Open chats"
+			>
+				<Icon name="menu" class="size-4" />
+			</button>
 			<div class="flex-1 flex justify-center">
 				{#if activeProviders.length > 0}
 					<div class="relative" bind:this={modelMenuEl}>
 						<button
-							class="flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground/90"
+							class="flex items-center gap-1 rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] px-2.5 py-1 text-xs font-medium text-foreground/70"
 							onclick={() => {
 								modelMenuOpen = !modelMenuOpen;
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
@@ -526,12 +519,12 @@
 							</svg>
 						</button>
 						{#if modelMenuOpen}
-							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border bg-popover p-1 shadow-md">
+							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border/40 bg-popover/90 backdrop-blur-xl p-1.5 shadow-lg shadow-black/5">
 								{#each activeProviders as p}
 									{@const info = providers.find((pr) => pr.key === p)!}
-									<div class="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{info.label}</div>
+									<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{info.label}</div>
 									{#if providerModels[p].length === 0}
-										<div class="px-2.5 pb-1 text-[11px] text-muted-foreground pl-3">
+										<div class="px-3 pb-1.5 text-[11px] text-muted-foreground">
 											{modelsLoading ? "Loading..." : "No models selected"}
 											{#if !modelsLoading}
 												<button class="text-blue-500 hover:underline ml-1" onclick={() => { modelMenuOpen = false; goto("/settings"); }}>Configure</button>
@@ -540,7 +533,7 @@
 									{:else}
 										{#each providerModels[p] as modelId}
 											<button
-												class="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors hover:bg-accent {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium' : 'text-muted-foreground'}"
+												class="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors hover:bg-muted/60 {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium bg-muted/40' : 'text-muted-foreground'}"
 												onclick={() => {
 													const changed = selectedProvider !== p;
 													selectedProvider = p;
@@ -550,7 +543,7 @@
 													if (changed && providerModels[p].length === 0) fetchModels();
 												}}
 											>
-												<span class="flex-1 text-left pl-2">{modelLabel(modelId)}</span>
+												<span class="flex-1 text-left">{modelLabel(modelId)}</span>
 												{#if selectedProvider === p && selectedModel === modelId}
 													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 												{/if}
@@ -563,11 +556,12 @@
 					</div>
 				{/if}
 			</div>
-			<Button variant="ghost" size="icon" onclick={handleNewChat} aria-label="New chat">
-				{#snippet children()}
-					<Icon name="plus" class="size-5" />
-				{/snippet}
-			</Button>
+			<button
+				class="inline-flex size-9 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
+				onclick={handleNewChat} aria-label="New chat"
+			>
+				<Icon name="plus" class="size-5" />
+			</button>
 		</header>
 
 		<MessageList {messages} />
