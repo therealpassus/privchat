@@ -498,7 +498,7 @@
 	<div class="flex flex-1 flex-col overflow-x-hidden">
 		<header class="flex h-14 shrink-0 items-center justify-between px-4">
 			<button
-				class="inline-flex size-9 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
+				class="inline-flex size-10 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
 				onclick={() => (sidebarOpen = true)} aria-label="Open chats"
 			>
 				<Icon name="menu" class="size-4" />
@@ -507,24 +507,24 @@
 				{#if activeProviders.length > 0}
 					<div class="relative" bind:this={modelMenuEl}>
 						<button
-							class="flex items-center gap-1 rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] px-2.5 py-1 text-xs font-medium text-foreground/70"
+							class="flex items-center gap-1.5 rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] px-4 py-1.5 text-sm font-medium text-foreground/70"
 							onclick={() => {
 								modelMenuOpen = !modelMenuOpen;
 								if (modelMenuOpen && providerModels[selectedProvider].length === 0) fetchModels();
 							}}
 						>
 							{modelLabel(selectedModel) || (providerModels[selectedProvider]?.length === 0 ? "No models" : "...")}
-							<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground {modelMenuOpen ? 'rotate-180' : ''} transition-transform">
 								<path d="m6 9 6 6 6-6"/>
 							</svg>
 						</button>
 						{#if modelMenuOpen}
-							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border/40 bg-popover/90 backdrop-blur-xl p-1.5 shadow-lg shadow-black/5">
+							<div role="menu" tabindex="-1" class="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-border/40 bg-popover/95 backdrop-blur-2xl p-2 shadow-xl shadow-black/5">
 								{#each activeProviders as p}
 									{@const info = providers.find((pr) => pr.key === p)!}
-									<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{info.label}</div>
+									<div class="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">{info.label}</div>
 									{#if providerModels[p].length === 0}
-										<div class="px-3 pb-1.5 text-[11px] text-muted-foreground">
+										<div class="px-3 pb-2 text-xs text-muted-foreground">
 											{modelsLoading ? "Loading..." : "No models selected"}
 											{#if !modelsLoading}
 												<button class="text-blue-500 hover:underline ml-1" onclick={() => { modelMenuOpen = false; goto("/settings"); }}>Configure</button>
@@ -533,7 +533,7 @@
 									{:else}
 										{#each providerModels[p] as modelId}
 											<button
-												class="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs transition-colors hover:bg-muted/60 {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium bg-muted/40' : 'text-muted-foreground'}"
+												class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-muted/60 {selectedProvider === p && selectedModel === modelId ? 'text-foreground font-medium bg-muted/40' : 'text-muted-foreground'}"
 												onclick={() => {
 													const changed = selectedProvider !== p;
 													selectedProvider = p;
@@ -557,7 +557,7 @@
 				{/if}
 			</div>
 			<button
-				class="inline-flex size-9 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
+				class="inline-flex size-10 items-center justify-center rounded-full bg-white/40 dark:bg-white/[0.06] backdrop-blur-md border border-white/20 dark:border-white/[0.04] text-foreground/70"
 				onclick={handleNewChat} aria-label="New chat"
 			>
 				<Icon name="plus" class="size-5" />
